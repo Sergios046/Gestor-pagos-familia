@@ -8,6 +8,7 @@ create table if not exists public.expenses (
   due_date date,
   paid boolean default false,
   paid_at timestamp with time zone,
+  recurring_monthly boolean not null default false,
   debt_id uuid,
   user_id uuid references auth.users (id) on delete cascade default auth.uid(),
   created_at timestamp with time zone default now()
@@ -19,14 +20,21 @@ create table if not exists public.debts (
   total_amount numeric not null,
   monthly_payment numeric not null,
   remaining_balance numeric not null,
+  reference_number text,
+  convenio text,
+  infonavit_credit text,
   user_id uuid references auth.users (id) on delete cascade default auth.uid(),
   created_at timestamp with time zone default now()
 );
 
 -- Optional columns (run if missing)
 alter table public.expenses add column if not exists category text;
+alter table public.expenses add column if not exists recurring_monthly boolean not null default false;
 alter table public.expenses add column if not exists updated_at timestamp with time zone default now();
 alter table public.debts add column if not exists updated_at timestamp with time zone default now();
+alter table public.debts add column if not exists reference_number text;
+alter table public.debts add column if not exists convenio text;
+alter table public.debts add column if not exists infonavit_credit text;
 
 alter table public.expenses add column if not exists user_id uuid references auth.users (id) on delete cascade;
 alter table public.debts add column if not exists user_id uuid references auth.users (id) on delete cascade;
@@ -67,6 +75,27 @@ create policy "debts_insert_own" on public.debts for insert with check (auth.uid
 create policy "debts_update_own" on public.debts for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "debts_delete_own" on public.debts for delete using (auth.uid() = user_id);
+
+create table if not exists public.payment_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  kind text not null check (kind in ('expense', 'debt')),
+  ref_id uuid not null,
+  title text not null,
+  amount numeric not null,
+  paid_at timestamp with time zone not null default now()
+);
+
+create index if not exists payment_events_user_paid_at_idx on public.payment_events (user_id, paid_at desc);
+
+alter table public.payment_events enable row level security;
+
+drop policy if exists "payment_events_select_own" on public.payment_events;
+drop policy if exists "payment_events_insert_own" on public.payment_events;
+
+create policy "payment_events_select_own" on public.payment_events for select using (auth.uid() = user_id);
+
+create policy "payment_events_insert_own" on public.payment_events for insert with check (auth.uid() = user_id);
 
 -- Realtime (skip errors if already added)
 alter publication supabase_realtime add table public.expenses;

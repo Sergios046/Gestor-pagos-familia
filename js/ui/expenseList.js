@@ -36,6 +36,9 @@ export function renderExpenseList(root, expenses, filter, handlers) {
       const cat = e.category
         ? `<span class="expense-card__badge">${escapeHtml(e.category)}</span>`
         : "";
+      const recur = e.recurringMonthly
+        ? `<span class="expense-card__badge expense-card__badge--recurring">Cada mes</span>`
+        : "";
       const dueLabel = formatDueLabel(e);
       const paidMeta = e.paid && e.paidAt
         ? `<p class="expense-card__meta">Pagado el ${formatPaidDate(e.paidAt)}</p>`
@@ -58,7 +61,7 @@ export function renderExpenseList(root, expenses, filter, handlers) {
         <div class="expense-card__head">
           <div>
             <h3 class="expense-card__title">${escapeHtml(e.name)}</h3>
-            ${cat}
+            ${cat}${recur}
           </div>
           <span class="expense-card__amount">${formatMoney(e.amount)}</span>
         </div>

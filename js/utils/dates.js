@@ -68,3 +68,36 @@ export function daysUntil(dueDateISO) {
   due.setHours(0, 0, 0, 0);
   return Math.round((due - today) / 86400000);
 }
+
+/**
+ * Mismo día del mes en otro mes (ajusta si el mes tiene menos días, ej. 31 → febrero).
+ * @param {string} isoDate 'YYYY-MM-DD'
+ * @param {number} deltaMonths
+ * @returns {string} 'YYYY-MM-DD'
+ */
+export function addMonthsPreserveDay(isoDate, deltaMonths) {
+  const [y, mo, day] = isoDate.split("-").map(Number);
+  const first = new Date(y, mo - 1 + deltaMonths, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const clamped = Math.min(day, lastDay);
+  const r = new Date(first.getFullYear(), first.getMonth(), clamped);
+  const yy = r.getFullYear();
+  const mm = String(r.getMonth() + 1).padStart(2, "0");
+  const dd = String(r.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+/**
+ * @param {string} isoDate 'YYYY-MM-DD'
+ */
+export function formatShortDateEs(isoDate) {
+  try {
+    return parseLocalDate(isoDate).toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return isoDate;
+  }
+}

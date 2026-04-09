@@ -91,12 +91,13 @@
 
 .app-nav__btn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-1);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 700;
   font-family: inherit;
   letter-spacing: 0.04em;
@@ -130,9 +131,164 @@
 }
 
 .app-nav__icon {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
   opacity: 0.9;
+}
+
+.form__field--checkbox {
+  margin-bottom: var(--space-3);
+}
+
+.form__check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.form__check-label input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  accent-color: var(--color-primary-mid);
+}
+
+.expense-card__badge--recurring {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary-mid);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.history-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.history-summary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.history-summary__label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.history-summary__value {
+  margin: var(--space-2) 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-color-scheme: dark) {
+  .history-summary__value {
+    color: var(--color-text);
+  }
+}
+
+.history-summary__meta {
+  margin: var(--space-1) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.history-empty-hint {
+  margin-top: var(--space-3) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.45;
+}
+
+.history-group__title {
+  margin: 0 0 var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.history-row__badge {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.history-row__badge--expense {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.history-row__badge--debt {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary-mid);
+}
+
+.history-row__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.history-row__title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.history-row__time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.history-row__amount {
+  font-weight: 800;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  white-space: nowrap;
 }
 
 .dashboard {
@@ -408,6 +564,20 @@
   line-height: 1.45;
 }
 
+.form__hint--tight {
+  margin-top: 0;
+  margin-bottom: var(--space-3);
+}
+
+.form__section-label {
+  margin: var(--space-4) 0 var(--space-1);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
 .debt-list {
   display: flex;
   flex-direction: column;
@@ -449,6 +619,21 @@
   color: var(--color-accent);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.debt-card__refs {
+  margin: var(--space-2) 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .debt-card__refs {
+    color: var(--color-primary-mid);
+  }
 }
 
 .debt-card__meta {

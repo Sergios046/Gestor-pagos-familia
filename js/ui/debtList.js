@@ -23,6 +23,12 @@ export function renderDebtList(root, debts, handlers) {
       const remaining = roundMoney(d.remainingBalance);
       const done = remaining <= 0;
       const payLabel = done ? "Liquidada" : `Cuota mensual: ${formatMoney(d.monthlyPayment)}`;
+      const refParts = [];
+      if (d.referenceNumber) refParts.push(`Ref. ${escapeHtml(d.referenceNumber)}`);
+      if (d.convenio) refParts.push(`Convenio ${escapeHtml(d.convenio)}`);
+      if (d.infonavitCredit) refParts.push(`Infonavit ${escapeHtml(d.infonavitCredit)}`);
+      const refLine =
+        refParts.length > 0 ? `<p class="debt-card__refs">${refParts.join(" · ")}</p>` : "";
 
       return `
       <article class="debt-card${done ? " debt-card--done" : ""}" data-id="${d.id}">
@@ -30,6 +36,7 @@ export function renderDebtList(root, debts, handlers) {
           <h3 class="debt-card__title">${escapeHtml(d.name)}</h3>
           <span class="debt-card__remaining">${formatMoney(remaining)}</span>
         </div>
+        ${refLine}
         <p class="debt-card__meta">Total: ${formatMoney(total)} · ${payLabel}</p>
         <p class="debt-card__progress-summary">
           Pagado: ${formatMoney(paid)} / ${formatMoney(total)}

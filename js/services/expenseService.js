@@ -1,5 +1,5 @@
 import { normalizeExpenses } from "../models/expense.js";
-import { normalizeDueDateToYYYYMMDD, nowISO } from "../utils/dates.js";
+import { normalizeDueDateToYYYYMMDD, nowISO, addMonthsPreserveDay } from "../utils/dates.js";
 import { roundMoney } from "../utils/money.js";
 import { toErrorMessage } from "../utils/supabaseErrors.js";
 import { getSupabase } from "./supabaseClient.js";
@@ -55,7 +55,9 @@ function assertValidExpensePayload(input) {
   const category =
     input.category == null || input.category === "" ? null : String(input.category).trim();
 
-  return { name, amount, dueDate, category };
+  const recurringMonthly = Boolean(input.recurringMonthly);
+
+  return { name, amount, dueDate, category, recurringMonthly };
 }
 
 /**
@@ -63,13 +65,16 @@ function assertValidExpensePayload(input) {
  * name, amount, due_date, paid, (+ category if set).
  * Omits paid_at (DB NULL), debt_id, created_at, updated_at, id.
  */
-function buildExpenseInsertPayload(/** @type {{ name: string; amount: number; dueDate: string; category: string | null }} */ v) {
+function buildExpenseInsertPayload(
+  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean }} */ v
+) {
   /** @type {Record<string, unknown>} */
   const payload = {
     name: v.name,
     amount: Number(v.amount),
     due_date: v.dueDate,
     paid: false,
+    recurring_monthly: v.recurringMonthly,
   };
   if (v.category != null && v.category !== "") {
     payload.category = v.category;
@@ -80,12 +85,15 @@ function buildExpenseInsertPayload(/** @type {{ name: string; amount: number; du
 /**
  * UPDATE — name, amount, due_date, category (null clears).
  */
-function buildExpenseUpdatePayload(/** @type {{ name: string; amount: number; dueDate: string; category: string | null }} */ v) {
+function buildExpenseUpdatePayload(
+  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean }} */ v
+) {
   return {
     name: v.name,
     amount: Number(v.amount),
     due_date: v.dueDate,
     category: v.category != null && v.category !== "" ? v.category : null,
+    recurring_monthly: v.recurringMonthly,
   };
 }
 
@@ -101,7 +109,7 @@ export async function listExpenses() {
 }
 
 /**
- * @param {{ name: string; amount: number; dueDate: string; category?: string | null }} input
+ * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean }} input
  */
 export async function createExpense(input) {
   const v = assertValidExpensePayload(input);
@@ -123,7 +131,7 @@ export async function createExpense(input) {
 
 /**
  * @param {string} id
- * @param {{ name: string; amount: number; dueDate: string; category?: string | null }} patch
+ * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean }} patch
  */
 export async function updateExpense(id, patch) {
   const v = assertValidExpensePayload(patch);
@@ -151,19 +159,49 @@ export async function removeExpense(id) {
   if (!data) throw new Error("Gasto no encontrado");
 }
 
-/** @param {string} id */
+/**
+ * Registra el pago en `payment_events`. Si el gasto es recurrente mensual, deja pendiente y mueve `due_date` un mes.
+ * @param {string} id
+ * @returns {Promise<{ expense: import('../models/expense.js').Expense; advancedRecurring: boolean; nextDue?: string }>}
+ */
 export async function markExpensePaid(id) {
   const supabase = getSupabase();
-  const t = nowISO();
-  const payload = { paid: true, paid_at: t };
-  const { data, error } = await supabase.from("expenses").update(payload).eq("id", id).select();
-
-  throwIfSupabaseError(error, "No se pudo actualizar");
-  const row = firstRow(data);
+  const { data: row, error: fetchErr } = await supabase.from("expenses").select("*").eq("id", id).single();
+  throwIfSupabaseError(fetchErr, "Gasto no encontrado");
   requireRow(row, "Gasto no encontrado");
-  const e = normalizeExpenseRow(row);
+  const current = normalizeExpenseRow(row);
+  if (!current) throw new Error("Gasto no encontrado");
+
+  const t = nowISO();
+  const { error: evErr } = await supabase.from("payment_events").insert([
+    {
+      kind: "expense",
+      ref_id: current.id,
+      title: current.name,
+      amount: Number(current.amount),
+      paid_at: t,
+    },
+  ]);
+  throwIfSupabaseError(evErr, "No se pudo registrar el pago en el historial");
+
+  let payload;
+  let advancedRecurring = false;
+  let nextDue;
+  if (current.recurringMonthly) {
+    nextDue = addMonthsPreserveDay(current.dueDate, 1);
+    advancedRecurring = true;
+    payload = { paid: false, paid_at: null, due_date: nextDue };
+  } else {
+    payload = { paid: true, paid_at: t };
+  }
+
+  const { data, error } = await supabase.from("expenses").update(payload).eq("id", id).select();
+  throwIfSupabaseError(error, "No se pudo actualizar");
+  const updated = firstRow(data);
+  requireRow(updated, "Gasto no encontrado");
+  const e = normalizeExpenseRow(updated);
   if (!e) throw new Error("Respuesta inválida");
-  return e;
+  return { expense: e, advancedRecurring, nextDue };
 }
 
 /** @param {string} id */

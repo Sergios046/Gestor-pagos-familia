@@ -23,6 +23,7 @@ export function mapExpenseFromDb(row) {
     dueDate: due,
     category: row.category == null || row.category === "" ? null : String(row.category),
     paid: Boolean(row.paid),
+    recurringMonthly: Boolean(row.recurring_monthly),
     paidAt: row.paid_at == null ? null : String(row.paid_at),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
@@ -34,12 +35,18 @@ export function mapExpenseFromDb(row) {
  * @returns {import('../models/debt.js').Debt}
  */
 export function mapDebtFromDb(row) {
+  const ref = row.reference_number;
+  const conv = row.convenio;
+  const inf = row.infonavit_credit;
   return {
     id: String(row.id),
     name: String(row.name ?? ""),
     totalAmount: Number(row.total_amount),
     monthlyPayment: Number(row.monthly_payment),
     remainingBalance: Number(row.remaining_balance),
+    referenceNumber: ref == null || ref === "" ? null : String(ref),
+    convenio: conv == null || conv === "" ? null : String(conv),
+    infonavitCredit: inf == null || inf === "" ? null : String(inf),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
   };

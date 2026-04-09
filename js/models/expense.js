@@ -10,6 +10,7 @@ import { roundMoney } from "../utils/money.js";
  * @property {string} dueDate ISO date YYYY-MM-DD
  * @property {string|null} category
  * @property {boolean} paid
+ * @property {boolean} recurringMonthly
  * @property {string|null} paidAt ISO datetime
  * @property {string} createdAt
  * @property {string} updatedAt
@@ -29,6 +30,7 @@ export function buildExpense(input) {
     dueDate: input.dueDate,
     category: input.category ? String(input.category).trim() : null,
     paid: Boolean(input.paid),
+    recurringMonthly: Boolean(input.recurringMonthly),
     paidAt: input.paidAt ?? null,
     createdAt: input.createdAt ?? t,
     updatedAt: t,
@@ -60,5 +62,6 @@ export function normalizeExpenses(raw) {
   return raw.filter(isExpense).map((e) => ({
     ...e,
     amount: Math.max(0, roundMoney(e.amount)),
+    recurringMonthly: Boolean(e.recurringMonthly),
   }));
 }

@@ -9,6 +9,9 @@ import { roundMoney } from "../utils/money.js";
  * @property {number} totalAmount
  * @property {number} monthlyPayment
  * @property {number} remainingBalance
+ * @property {string | null} [referenceNumber]
+ * @property {string | null} [convenio]
+ * @property {string | null} [infonavitCredit]
  * @property {string} createdAt
  * @property {string} updatedAt
  */
@@ -31,6 +34,9 @@ export function buildDebt(input) {
     totalAmount: total,
     monthlyPayment: Math.max(0, roundMoney(input.monthlyPayment)),
     remainingBalance: remaining,
+    referenceNumber: input.referenceNumber ?? null,
+    convenio: input.convenio ?? null,
+    infonavitCredit: input.infonavitCredit ?? null,
     createdAt: input.createdAt ?? t,
     updatedAt: t,
   };
@@ -92,6 +98,9 @@ export function normalizeDebts(raw) {
       totalAmount: total,
       monthlyPayment: monthly,
       remainingBalance: rem,
+      referenceNumber: d.referenceNumber ?? null,
+      convenio: d.convenio ?? null,
+      infonavitCredit: d.infonavitCredit ?? null,
     };
   });
 }

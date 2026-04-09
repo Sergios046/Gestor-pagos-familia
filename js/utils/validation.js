@@ -3,13 +3,14 @@ import { roundMoney } from "./money.js";
 
 /**
  * @param {FormData} fd
- * @returns {{ ok: true, name: string, amount: number, dueDate: string, category: string | null } | { ok: false, message: string }}
+ * @returns {{ ok: true, name: string, amount: number, dueDate: string, category: string | null, recurringMonthly: boolean } | { ok: false, message: string }}
  */
 export function validateExpenseFormData(fd) {
   const name = String(fd.get("name") ?? "").trim();
   const dueDate = String(fd.get("dueDate") ?? "").trim();
   const amountStr = String(fd.get("amount") ?? "").trim();
   const categoryRaw = String(fd.get("category") ?? "").trim();
+  const recurringMonthly = fd.get("recurringMonthly") === "on";
 
   if (!name) {
     return { ok: false, message: "Escribe un nombre para el gasto." };
@@ -38,12 +39,30 @@ export function validateExpenseFormData(fd) {
     amount,
     dueDate: dueNormalized,
     category: categoryRaw ? categoryRaw : null,
+    recurringMonthly,
   };
 }
 
 /**
+ * @param {string} label
  * @param {FormData} fd
- * @returns {{ ok: true, name: string, totalAmount: number, monthlyPayment: number, remainingBalance: number } | { ok: false, message: string }}
+ * @param {string} key
+ * @returns {{ ok: true, value: string | null } | { ok: false, message: string }}
+ */
+function parseOptionalDigitsField(label, fd, key) {
+  const raw = String(fd.get(key) ?? "")
+    .replace(/\s/g, "")
+    .trim();
+  if (!raw) return { ok: true, value: null };
+  if (!/^\d+$/.test(raw)) {
+    return { ok: false, message: `${label}: solo números (sin letras ni símbolos).` };
+  }
+  return { ok: true, value: raw };
+}
+
+/**
+ * @param {FormData} fd
+ * @returns {{ ok: true, name: string, totalAmount: number, monthlyPayment: number, remainingBalance: number, referenceNumber: string | null, convenio: string | null, infonavitCredit: string | null } | { ok: false, message: string }}
  */
 export function validateDebtFormData(fd) {
   const name = String(fd.get("name") ?? "").trim();
@@ -89,5 +108,21 @@ export function validateDebtFormData(fd) {
     };
   }
 
-  return { ok: true, name, totalAmount, monthlyPayment, remainingBalance };
+  const ref = parseOptionalDigitsField("Nº de referencia", fd, "referenceNumber");
+  if (!ref.ok) return ref;
+  const conv = parseOptionalDigitsField("Convenio", fd, "convenio");
+  if (!conv.ok) return conv;
+  const inf = parseOptionalDigitsField("Crédito Infonavit", fd, "infonavitCredit");
+  if (!inf.ok) return inf;
+
+  return {
+    ok: true,
+    name,
+    totalAmount,
+    monthlyPayment,
+    remainingBalance,
+    referenceNumber: ref.value,
+    convenio: conv.value,
+    infonavitCredit: inf.value,
+  };
 }

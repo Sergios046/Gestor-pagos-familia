@@ -1,5 +1,6 @@
 import { normalizeDebts } from "../models/debt.js";
 import { roundMoney } from "../utils/money.js";
+import { nowISO } from "../utils/dates.js";
 import { toErrorMessage } from "../utils/supabaseErrors.js";
 import { getSupabase } from "./supabaseClient.js";
 import { mapDebtFromDb, normalizeDebtRow } from "./supabaseMappers.js";
@@ -20,7 +21,23 @@ function firstRow(data) {
 }
 
 /**
- * @param {{ name: unknown; totalAmount: unknown; monthlyPayment: unknown; remainingBalance?: unknown }} input
+ * @param {string} label
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function optionalDigitsOnly(label, raw) {
+  const t = String(raw ?? "")
+    .replace(/\s/g, "")
+    .trim();
+  if (!t) return null;
+  if (!/^\d+$/.test(t)) {
+    throw new Error(`${label}: solo números (sin letras ni símbolos).`);
+  }
+  return t;
+}
+
+/**
+ * @param {{ name: unknown; totalAmount: unknown; monthlyPayment: unknown; remainingBalance?: unknown; referenceNumber?: unknown; convenio?: unknown; infonavitCredit?: unknown }} input
  */
 function assertValidDebtInput(input) {
   const name = String(input.name ?? "").trim();
@@ -42,16 +59,24 @@ function assertValidDebtInput(input) {
     throw new Error("El saldo pendiente no es válido.");
   }
   const remaining = Math.max(0, Math.min(remainingRaw, total));
-  return { name, total, monthly, remaining };
+  const referenceNumber = optionalDigitsOnly("Nº de referencia", input.referenceNumber);
+  const convenio = optionalDigitsOnly("Convenio", input.convenio);
+  const infonavitCredit = optionalDigitsOnly("Crédito Infonavit", input.infonavitCredit);
+  return { name, total, monthly, remaining, referenceNumber, convenio, infonavitCredit };
 }
 
-/** INSERT/UPDATE body: only name, total_amount, monthly_payment, remaining_balance */
-function buildDebtWritePayload(/** @type {{ name: string; total: number; monthly: number; remaining: number }} */ v) {
+/** INSERT/UPDATE body */
+function buildDebtWritePayload(
+  /** @type {{ name: string; total: number; monthly: number; remaining: number; referenceNumber: string | null; convenio: string | null; infonavitCredit: string | null }} */ v
+) {
   return {
     name: v.name,
     total_amount: Number(v.total),
     monthly_payment: Number(v.monthly),
     remaining_balance: Number(v.remaining),
+    reference_number: v.referenceNumber,
+    convenio: v.convenio,
+    infonavit_credit: v.infonavitCredit,
   };
 }
 
@@ -64,7 +89,7 @@ export async function listDebts() {
 }
 
 /**
- * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance?: number }} input
+ * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance?: number; referenceNumber?: string | null; convenio?: string | null; infonavitCredit?: string | null }} input
  */
 export async function createDebt(input) {
   const v = assertValidDebtInput(input);
@@ -86,7 +111,7 @@ export async function createDebt(input) {
 
 /**
  * @param {string} id
- * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance: number }} patch
+ * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance: number; referenceNumber?: string | null; convenio?: string | null; infonavitCredit?: string | null }} patch
  */
 export async function updateDebt(id, patch) {
   const v = assertValidDebtInput(patch);
@@ -145,5 +170,20 @@ export async function registerDebtPayment(id) {
   requireRow(nextRow, "Deuda no encontrada");
   const next = normalizeDebtRow(nextRow);
   if (!next) throw new Error("Respuesta inválida");
+
+  if (pay > 0) {
+    const t = nowISO();
+    const { error: evErr } = await supabase.from("payment_events").insert([
+      {
+        kind: "debt",
+        ref_id: id,
+        title: next.name,
+        amount: Number(pay),
+        paid_at: t,
+      },
+    ]);
+    throwIfSupabaseError(evErr, "Pago aplicado pero no se guardó en el historial");
+  }
+
   return { debt: next, applied: pay };
 }

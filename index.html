@@ -75,6 +75,10 @@
         <span class="app-nav__icon" aria-hidden="true">◎</span>
         Deudas
       </button>
+      <button type="button" class="app-nav__btn" data-view="history">
+        <span class="app-nav__icon" aria-hidden="true">◇</span>
+        Historial
+      </button>
     </nav>
 
     <main id="main-content" class="main">
@@ -108,6 +112,14 @@
         </div>
         <div class="debt-list" data-debt-list-root></div>
       </section>
+
+      <section id="view-history" class="view" hidden aria-labelledby="history-heading">
+        <div class="expenses-toolbar">
+          <h2 id="history-heading" class="expenses-toolbar__title">Historial de pagos</h2>
+          <p class="debts-intro">Gastos marcados como pagados y cuotas registradas en deudas, ordenados por fecha.</p>
+        </div>
+        <div class="history-root" data-history-root></div>
+      </section>
     </main>
 
     <div class="modal" id="expense-modal" hidden role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
@@ -137,6 +149,13 @@
             <label for="expense-category">Categoría <span class="optional">(opcional)</span></label>
             <input id="expense-category" name="category" type="text" autocomplete="off" placeholder="Vivienda, ocio…" />
           </div>
+          <div class="form__field form__field--checkbox">
+            <label class="form__check-label">
+              <input id="expense-recurring" name="recurringMonthly" type="checkbox" value="on" />
+              <span>Vence cada mes (mismo día)</span>
+            </label>
+            <p class="form__hint form__hint--tight">Si lo activas, al marcar «Pagado» el gasto vuelve a pendiente y la fecha avanza un mes (p. ej. 13 → próximo mes día 13).</p>
+          </div>
           <footer class="form__actions">
             <button type="button" class="btn btn--ghost" data-dismiss-modal>Cancelar</button>
             <button type="submit" class="btn btn--primary">Guardar</button>
@@ -156,7 +175,23 @@
           <input type="hidden" name="id" id="debt-id" />
           <div class="form__field">
             <label for="debt-name">Nombre</label>
-            <input id="debt-name" name="name" type="text" required autocomplete="off" placeholder="Ej. Préstamo coche…" />
+            <input id="debt-name" name="name" type="text" required autocomplete="off" placeholder="Ej. Hipoteca, Infonavit…" />
+          </div>
+          <p class="form__section-label">Datos de la deuda <span class="optional">(opcional)</span></p>
+          <p class="form__hint form__hint--tight">Nº de referencia, convenio y crédito Infonavit: solo dígitos, sin espacios.</p>
+          <div class="form__row">
+            <div class="form__field">
+              <label for="debt-ref">Nº de referencia</label>
+              <input id="debt-ref" name="referenceNumber" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej. 1234567890" />
+            </div>
+            <div class="form__field">
+              <label for="debt-convenio">Convenio</label>
+              <input id="debt-convenio" name="convenio" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej. 987654" />
+            </div>
+          </div>
+          <div class="form__field">
+            <label for="debt-infonavit">Crédito Infonavit</label>
+            <input id="debt-infonavit" name="infonavitCredit" type="text" inputmode="numeric" autocomplete="off" placeholder="Número de crédito" />
           </div>
           <div class="form__field">
             <label for="debt-total">Importe total ($ MXN)</label>

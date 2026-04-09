@@ -18,21 +18,28 @@ import { renderDashboard } from "./ui/dashboard.js";
 import { renderExpenseList } from "./ui/expenseList.js";
 import { renderDebtList } from "./ui/debtList.js";
 import { showToast } from "./ui/toast.js";
-import { todayISO } from "./utils/dates.js";
+import { todayISO, formatShortDateEs } from "./utils/dates.js";
 import { formatMoney, roundMoney } from "./utils/money.js";
 import { validateExpenseFormData, validateDebtFormData } from "./utils/validation.js";
 import { toErrorMessage } from "./utils/supabaseErrors.js";
 import { subscribeExpensesAndDebts } from "./services/realtimeSync.js";
 import { getSupabase, resetSupabaseClient } from "./services/supabaseClient.js";
 import { mountAuthGate, signOutAndReload } from "./auth/authGate.js";
+import { listPaymentHistory } from "./services/paymentHistoryService.js";
+import { renderHistory } from "./ui/historyView.js";
 
 /**
- * @typedef {{ expenses: import('./models/expense.js').Expense[]; debts: import('./models/debt.js').Debt[]; filter: 'pending' | 'paid' | 'all'; view: 'dashboard' | 'expenses' | 'debts' }} AppState
+ * @typedef {import('./services/paymentHistoryService.js').PaymentHistoryRow} PaymentHistoryRow
+ */
+
+/**
+ * @typedef {{ expenses: import('./models/expense.js').Expense[]; debts: import('./models/debt.js').Debt[]; filter: 'pending' | 'paid' | 'all'; view: 'dashboard' | 'expenses' | 'debts' | 'history'; paymentHistory: PaymentHistoryRow[] }} AppState
  */
 
 const initialState = {
   expenses: [],
   debts: [],
+  paymentHistory: /** @type {PaymentHistoryRow[]} */ ([]),
   filter: /** @type {const} */ ("pending"),
   view: /** @type {const} */ ("dashboard"),
 };
@@ -77,11 +84,13 @@ const els = {
     dashboard: document.getElementById("view-dashboard"),
     expenses: document.getElementById("view-expenses"),
     debts: document.getElementById("view-debts"),
+    history: document.getElementById("view-history"),
   },
   navBtns: document.querySelectorAll("[data-view]"),
   dashboardRoot: document.querySelector("[data-dashboard-root]"),
   expenseListRoot: document.querySelector("[data-expense-list-root]"),
   debtListRoot: document.querySelector("[data-debt-list-root]"),
+  historyRoot: document.querySelector("[data-history-root]"),
   filterBtns: document.querySelectorAll("[data-filter]"),
   expenseModal: document.getElementById("expense-modal"),
   expenseForm: document.getElementById("expense-form"),
@@ -135,6 +144,9 @@ function syncUI() {
       onDelete: (id) => handleDebtDelete(id),
     });
   }
+  if (els.historyRoot && state.view === "history") {
+    renderHistory(els.historyRoot, state.paymentHistory);
+  }
   els.filterBtns.forEach((btn) => {
     const f = btn.getAttribute("data-filter");
     const active = f === state.filter;
@@ -145,10 +157,17 @@ function syncUI() {
 
 async function reloadData() {
   try {
+    let paymentHistory = /** @type {PaymentHistoryRow[]} */ ([]);
+    try {
+      paymentHistory = await listPaymentHistory();
+    } catch (histErr) {
+      console.warn("[Historial]", histErr);
+    }
     const [expenses, debts] = await Promise.all([listExpenses(), listDebts()]);
     store.setState((s) => {
       s.expenses = expenses;
       s.debts = debts;
+      s.paymentHistory = paymentHistory;
     });
     syncUI();
   } catch (err) {
@@ -159,9 +178,13 @@ async function reloadData() {
 
 async function handlePaid(id) {
   try {
-    await markExpensePaid(id);
+    const r = await markExpensePaid(id);
     await reloadData();
-    showToast(els.toast, "Marcado como pagado");
+    if (r.advancedRecurring && r.nextDue) {
+      showToast(els.toast, `Pago registrado. Próximo vencimiento: ${formatShortDateEs(r.nextDue)}`);
+    } else {
+      showToast(els.toast, "Marcado como pagado");
+    }
   } catch (err) {
     console.error(err);
     showToast(els.toast, toErrorMessage(err));
@@ -253,6 +276,8 @@ function openExpenseModalForEdit(id) {
   if (d) d.value = exp.dueDate;
   const c = document.getElementById("expense-category");
   if (c) c.value = exp.category ?? "";
+  const rec = document.getElementById("expense-recurring");
+  if (rec) rec.checked = Boolean(exp.recurringMonthly);
   els.expenseModal.hidden = false;
   document.getElementById("expense-name")?.focus();
 }
@@ -289,6 +314,9 @@ function openDebtModalForEdit(id) {
   if (title) title.textContent = "Editar deuda";
   document.getElementById("debt-id").value = d.id;
   document.getElementById("debt-name").value = d.name;
+  document.getElementById("debt-ref").value = d.referenceNumber ?? "";
+  document.getElementById("debt-convenio").value = d.convenio ?? "";
+  document.getElementById("debt-infonavit").value = d.infonavitCredit ?? "";
   document.getElementById("debt-total").value = roundMoney(d.totalAmount).toFixed(2);
   document.getElementById("debt-monthly").value = roundMoney(d.monthlyPayment).toFixed(2);
   document.getElementById("debt-remaining").value = roundMoney(d.remainingBalance).toFixed(2);
@@ -311,7 +339,7 @@ async function onExpenseFormSubmit(ev) {
     showToast(els.toast, parsed.message);
     return;
   }
-  const { name, amount, dueDate, category } = parsed;
+  const { name, amount, dueDate, category, recurringMonthly } = parsed;
 
   try {
     if (id) {
@@ -320,6 +348,7 @@ async function onExpenseFormSubmit(ev) {
         amount,
         dueDate,
         category,
+        recurringMonthly,
       });
       showToast(els.toast, "Gasto actualizado");
     } else {
@@ -328,6 +357,7 @@ async function onExpenseFormSubmit(ev) {
         amount,
         dueDate,
         category,
+        recurringMonthly,
       });
       showToast(els.toast, "Gasto añadido");
     }
@@ -353,7 +383,7 @@ async function onDebtFormSubmit(ev) {
     showToast(els.toast, parsed.message);
     return;
   }
-  const { name, totalAmount, monthlyPayment, remainingBalance } = parsed;
+  const { name, totalAmount, monthlyPayment, remainingBalance, referenceNumber, convenio, infonavitCredit } = parsed;
 
   try {
     if (id) {
@@ -362,6 +392,9 @@ async function onDebtFormSubmit(ev) {
         totalAmount,
         monthlyPayment,
         remainingBalance,
+        referenceNumber,
+        convenio,
+        infonavitCredit,
       });
       showToast(els.toast, "Deuda actualizada");
     } else {
@@ -370,6 +403,9 @@ async function onDebtFormSubmit(ev) {
         totalAmount,
         monthlyPayment,
         remainingBalance,
+        referenceNumber,
+        convenio,
+        infonavitCredit,
       });
       showToast(els.toast, "Deuda añadida");
     }
@@ -385,9 +421,9 @@ function registerNav() {
   els.navBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const v = btn.getAttribute("data-view");
-      if (v !== "dashboard" && v !== "expenses" && v !== "debts") return;
+      if (v !== "dashboard" && v !== "expenses" && v !== "debts" && v !== "history") return;
       store.setState((s) => {
-        s.view = v;
+        s.view = /** @type {'dashboard' | 'expenses' | 'debts' | 'history'} */ (v);
       });
       syncUI();
     });

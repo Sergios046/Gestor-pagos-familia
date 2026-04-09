@@ -1,7 +1,7 @@
 /**
  * Service worker — assets cache. HTML/navegación: red primero para no quedarte en una versión vieja (login, etc.).
  */
-const CACHE = "gestor-pagos-v12";
+const CACHE = "gestor-pagos-v14";
 
 /** Sin index.html aquí: la primera carga del documento va a red y luego se guarda en caché. */
 const ASSETS = [
@@ -21,6 +21,7 @@ const ASSETS = [
   "./js/services/realtimeSync.js",
   "./js/services/expenseService.js",
   "./js/services/debtService.js",
+  "./js/services/paymentHistoryService.js",
   "./js/utils/id.js",
   "./js/utils/dates.js",
   "./js/utils/money.js",
@@ -29,6 +30,7 @@ const ASSETS = [
   "./js/ui/dashboard.js",
   "./js/ui/debtList.js",
   "./js/ui/expenseList.js",
+  "./js/ui/historyView.js",
   "./js/ui/toast.js",
 ];
 
