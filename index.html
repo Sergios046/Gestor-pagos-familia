@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="Gestor de gastos y recordatorios de pago familiar" />
+    <title>Gestor de pagos — Familia</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.49.4"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+    <header class="app-header">
+      <div class="app-header__inner">
+        <h1 class="app-title">Gestor de pagos</h1>
+        <p class="app-subtitle">Gastos y recordatorios</p>
+      </div>
+    </header>
+
+    <nav class="app-nav" aria-label="Secciones">
+      <button type="button" class="app-nav__btn app-nav__btn--active" data-view="dashboard" aria-current="page">
+        <span class="app-nav__icon" aria-hidden="true">◉</span>
+        Resumen
+      </button>
+      <button type="button" class="app-nav__btn" data-view="expenses">
+        <span class="app-nav__icon" aria-hidden="true">≡</span>
+        Gastos
+      </button>
+      <button type="button" class="app-nav__btn" data-view="debts">
+        <span class="app-nav__icon" aria-hidden="true">◎</span>
+        Deudas
+      </button>
+    </nav>
+
+    <main id="main-content" class="main">
+      <section id="view-dashboard" class="view view--active" aria-labelledby="dashboard-heading">
+        <h2 id="dashboard-heading" class="visually-hidden">Resumen</h2>
+        <div class="dashboard" data-dashboard-root></div>
+      </section>
+
+      <section id="view-expenses" class="view" hidden aria-labelledby="expenses-heading">
+        <div class="expenses-toolbar">
+          <h2 id="expenses-heading" class="expenses-toolbar__title">Gastos</h2>
+          <div class="segmented" role="tablist" aria-label="Filtrar gastos">
+            <button type="button" class="segmented__btn segmented__btn--active" data-filter="pending" role="tab" aria-selected="true">Pendientes</button>
+            <button type="button" class="segmented__btn" data-filter="paid" role="tab" aria-selected="false">Pagados</button>
+            <button type="button" class="segmented__btn" data-filter="all" role="tab" aria-selected="false">Todos</button>
+          </div>
+          <button type="button" class="btn btn--primary btn--block" data-action="open-expense-form">
+            + Añadir gasto
+          </button>
+        </div>
+        <div class="expense-list" data-expense-list-root></div>
+      </section>
+
+      <section id="view-debts" class="view" hidden aria-labelledby="debts-heading">
+        <div class="expenses-toolbar">
+          <h2 id="debts-heading" class="expenses-toolbar__title">Deudas</h2>
+          <p class="debts-intro">Registra pagos mensuales; el saldo pendiente se actualiza solo.</p>
+          <button type="button" class="btn btn--primary btn--block" data-action="open-debt-form">
+            + Añadir deuda
+          </button>
+        </div>
+        <div class="debt-list" data-debt-list-root></div>
+      </section>
+    </main>
+
+    <div class="modal" id="expense-modal" hidden role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+      <div class="modal__backdrop" data-dismiss-modal></div>
+      <div class="modal__panel">
+        <header class="modal__header">
+          <h2 id="expense-modal-title" class="modal__title">Nuevo gasto</h2>
+          <button type="button" class="icon-btn" data-dismiss-modal aria-label="Cerrar">&times;</button>
+        </header>
+        <form class="form" id="expense-form">
+          <input type="hidden" name="id" id="expense-id" />
+          <div class="form__field">
+            <label for="expense-name">Nombre</label>
+            <input id="expense-name" name="name" type="text" required autocomplete="off" placeholder="Ej. Luz, Hipoteca…" />
+          </div>
+          <div class="form__row">
+            <div class="form__field">
+              <label for="expense-amount">Importe ($ MXN)</label>
+              <input id="expense-amount" name="amount" type="number" inputmode="decimal" min="0" step="0.01" required placeholder="0.00" />
+            </div>
+            <div class="form__field">
+              <label for="expense-due">Vencimiento</label>
+              <input id="expense-due" name="dueDate" type="date" required />
+            </div>
+          </div>
+          <div class="form__field">
+            <label for="expense-category">Categoría <span class="optional">(opcional)</span></label>
+            <input id="expense-category" name="category" type="text" autocomplete="off" placeholder="Vivienda, ocio…" />
+          </div>
+          <footer class="form__actions">
+            <button type="button" class="btn btn--ghost" data-dismiss-modal>Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="debt-modal" hidden role="dialog" aria-modal="true" aria-labelledby="debt-modal-title">
+      <div class="modal__backdrop" data-dismiss-modal></div>
+      <div class="modal__panel">
+        <header class="modal__header">
+          <h2 id="debt-modal-title" class="modal__title">Nueva deuda</h2>
+          <button type="button" class="icon-btn" data-dismiss-modal aria-label="Cerrar">&times;</button>
+        </header>
+        <form class="form" id="debt-form">
+          <input type="hidden" name="id" id="debt-id" />
+          <div class="form__field">
+            <label for="debt-name">Nombre</label>
+            <input id="debt-name" name="name" type="text" required autocomplete="off" placeholder="Ej. Préstamo coche…" />
+          </div>
+          <div class="form__field">
+            <label for="debt-total">Importe total ($ MXN)</label>
+            <input id="debt-total" name="totalAmount" type="number" inputmode="decimal" min="0" step="0.01" required placeholder="0.00" />
+          </div>
+          <div class="form__field">
+            <label for="debt-monthly">Cuota mensual ($ MXN)</label>
+            <input id="debt-monthly" name="monthlyPayment" type="number" inputmode="decimal" min="0" step="0.01" required placeholder="0.00" />
+          </div>
+          <div class="form__field">
+            <label for="debt-remaining">Saldo pendiente ($ MXN)</label>
+            <input id="debt-remaining" name="remainingBalance" type="number" inputmode="decimal" min="0" step="0.01" required placeholder="Igual al total si empiezas desde cero" />
+            <p class="form__hint">Al crear una deuda nueva, suele coincidir con el importe total.</p>
+          </div>
+          <footer class="form__actions">
+            <button type="button" class="btn btn--ghost" data-dismiss-modal>Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast" data-toast hidden role="status" aria-live="polite"></div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
