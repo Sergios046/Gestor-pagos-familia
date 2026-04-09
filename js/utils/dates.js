@@ -11,6 +11,19 @@ export function nowISO() {
 }
 
 /**
+ * Año-mes calendario en la zona horaria local (`YYYY-MM`), p. ej. para limitar acciones mensuales.
+ * @param {Date|string} value
+ * @returns {string} Vacío si la fecha no es válida.
+ */
+export function yearMonthLocal(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+/**
  * Normalize to `YYYY-MM-DD` for Postgres `date` and Supabase inserts.
  * @param {string|Date|undefined|null} value
  * @returns {string} Empty string if missing/invalid.

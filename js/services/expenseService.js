@@ -1,5 +1,5 @@
 import { normalizeExpenses } from "../models/expense.js";
-import { normalizeDueDateToYYYYMMDD, nowISO, addMonthsPreserveDay } from "../utils/dates.js";
+import { normalizeDueDateToYYYYMMDD, nowISO, addMonthsPreserveDay, yearMonthLocal } from "../utils/dates.js";
 import { roundMoney } from "../utils/money.js";
 import { toErrorMessage } from "../utils/supabaseErrors.js";
 import { getSupabase } from "./supabaseClient.js";
@@ -171,6 +171,24 @@ export async function markExpensePaid(id) {
   requireRow(row, "Gasto no encontrado");
   const current = normalizeExpenseRow(row);
   if (!current) throw new Error("Gasto no encontrado");
+
+  if (current.recurringMonthly) {
+    const thisMonth = yearMonthLocal(new Date());
+    const { data: lastEv, error: lastErr } = await supabase
+      .from("payment_events")
+      .select("paid_at")
+      .eq("kind", "expense")
+      .eq("ref_id", current.id)
+      .order("paid_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    throwIfSupabaseError(lastErr, "No se pudo comprobar el historial de pagos");
+    if (lastEv?.paid_at && yearMonthLocal(lastEv.paid_at) === thisMonth) {
+      throw new Error(
+        "Ya registraste el pago de este gasto recurrente en este mes calendario. Vuelve a intentarlo cuando cambie el mes, o ajusta la fecha en Editar si hubo un error."
+      );
+    }
+  }
 
   const t = nowISO();
   const { error: evErr } = await supabase.from("payment_events").insert([
