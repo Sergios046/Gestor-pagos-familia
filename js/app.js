@@ -25,7 +25,7 @@ import { toErrorMessage } from "./utils/supabaseErrors.js";
 import { subscribeExpensesAndDebts } from "./services/realtimeSync.js";
 import { getSupabase, resetSupabaseClient } from "./services/supabaseClient.js";
 import { mountAuthGate, signOutAndReload } from "./auth/authGate.js";
-import { listPaymentHistory } from "./services/paymentHistoryService.js";
+import { listPaymentHistory, clearAllPaymentHistory } from "./services/paymentHistoryService.js";
 import { renderHistory } from "./ui/historyView.js";
 
 /**
@@ -196,6 +196,24 @@ async function handleUnpaid(id) {
     await markExpenseUnpaid(id);
     await reloadData();
     showToast(els.toast, "Marcado como pendiente");
+  } catch (err) {
+    console.error(err);
+    showToast(els.toast, toErrorMessage(err));
+  }
+}
+
+async function handleClearPaymentHistory() {
+  if (
+    !confirm(
+      "¿Estás seguro de que quieres borrar todo el historial de pagos? Esta acción no se puede deshacer."
+    )
+  ) {
+    return;
+  }
+  try {
+    await clearAllPaymentHistory();
+    await reloadData();
+    showToast(els.toast, "Historial borrado");
   } catch (err) {
     console.error(err);
     showToast(els.toast, toErrorMessage(err));
@@ -471,6 +489,9 @@ function registerForms() {
   els.openDebtFormBtns.forEach((b) => b.addEventListener("click", () => openDebtModalNew()));
   els.expenseForm?.addEventListener("submit", onExpenseFormSubmit);
   els.debtForm?.addEventListener("submit", onDebtFormSubmit);
+  document.querySelector("[data-action='clear-payment-history']")?.addEventListener("click", () => {
+    void handleClearPaymentHistory();
+  });
   registerDebtFormConstraints();
 }
 

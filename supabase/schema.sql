@@ -92,10 +92,13 @@ alter table public.payment_events enable row level security;
 
 drop policy if exists "payment_events_select_own" on public.payment_events;
 drop policy if exists "payment_events_insert_own" on public.payment_events;
+drop policy if exists "payment_events_delete_own" on public.payment_events;
 
 create policy "payment_events_select_own" on public.payment_events for select using (auth.uid() = user_id);
 
 create policy "payment_events_insert_own" on public.payment_events for insert with check (auth.uid() = user_id);
+
+create policy "payment_events_delete_own" on public.payment_events for delete using (auth.uid() = user_id);
 
 -- Realtime (skip errors if already added)
 alter publication supabase_realtime add table public.expenses;

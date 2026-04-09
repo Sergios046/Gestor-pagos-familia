@@ -164,6 +164,17 @@
   border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
+.history-toolbar__clear {
+  margin-top: var(--space-1);
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.history-toolbar__clear:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
 .history-root {
   display: flex;
   flex-direction: column;

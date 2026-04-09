@@ -33,3 +33,20 @@ export async function listPaymentHistory() {
     paidAt: String(row.paid_at ?? ""),
   }));
 }
+
+/** Borra todos los movimientos del historial del usuario actual (gastos y deudas). */
+export async function clearAllPaymentHistory() {
+  const supabase = getSupabase();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr) {
+    console.error(userErr);
+    throw new Error(toErrorMessage(userErr) || "No se pudo obtener la sesión");
+  }
+  if (!user) throw new Error("Inicia sesión para continuar.");
+
+  const { error } = await supabase.from("payment_events").delete().eq("user_id", user.id);
+  throwIfSupabaseError(error, "No se pudo borrar el historial");
+}
