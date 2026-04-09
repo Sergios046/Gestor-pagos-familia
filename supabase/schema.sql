@@ -54,6 +54,7 @@ create index if not exists expenses_due_date_idx on public.expenses (due_date);
 create index if not exists debts_name_idx on public.debts (name);
 create index if not exists debts_due_date_idx on public.debts (due_date);
 
+-- RLS obligatorio si hay políticas; sin esto el Security Advisor marca «RLS Disabled in Public».
 alter table public.expenses enable row level security;
 alter table public.debts enable row level security;
 

@@ -42,3 +42,6 @@ create policy "debts_insert_own" on public.debts for insert with check (auth.uid
 create policy "debts_update_own" on public.debts for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "debts_delete_own" on public.debts for delete using (auth.uid() = user_id);
+
+alter table public.expenses enable row level security;
+alter table public.debts enable row level security;
