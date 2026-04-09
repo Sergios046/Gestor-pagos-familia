@@ -113,9 +113,14 @@ function toastMsg(text) {
 function filterExpensesBySearch(expenses, q) {
   const n = q.trim().toLowerCase();
   if (!n) return expenses;
-  return expenses.filter(
-    (e) => e.name.toLowerCase().includes(n) || (e.category && e.category.toLowerCase().includes(n))
-  );
+  return expenses.filter((e) => {
+    if (e.name.toLowerCase().includes(n)) return true;
+    if (e.category && e.category.toLowerCase().includes(n)) return true;
+    if (e.paymentConvenio && e.paymentConvenio.toLowerCase().includes(n)) return true;
+    if (e.paymentServiceAccount && e.paymentServiceAccount.toLowerCase().includes(n)) return true;
+    if (e.paymentNotes && e.paymentNotes.toLowerCase().includes(n)) return true;
+    return false;
+  });
 }
 
 /** @param {import('./models/debt.js').Debt[]} debts */
@@ -361,6 +366,12 @@ function openExpenseModalForEdit(id) {
   if (c) c.value = exp.category ?? "";
   const rec = document.getElementById("expense-recurring");
   if (rec) rec.checked = Boolean(exp.recurringMonthly);
+  const pc = document.getElementById("expense-pay-convenio");
+  if (pc) pc.value = exp.paymentConvenio ?? "";
+  const ps = document.getElementById("expense-pay-service");
+  if (ps) ps.value = exp.paymentServiceAccount ?? "";
+  const pn = document.getElementById("expense-pay-notes");
+  if (pn) pn.value = exp.paymentNotes ?? "";
   els.expenseModal.hidden = false;
   document.getElementById("expense-name")?.focus();
 }
@@ -426,7 +437,8 @@ async function onExpenseFormSubmit(ev) {
     showToast(els.toast, parsed.message);
     return;
   }
-  const { name, amount, dueDate, category, recurringMonthly } = parsed;
+  const { name, amount, dueDate, category, recurringMonthly, paymentConvenio, paymentServiceAccount, paymentNotes } =
+    parsed;
 
   try {
     if (id) {
@@ -436,6 +448,9 @@ async function onExpenseFormSubmit(ev) {
         dueDate,
         category,
         recurringMonthly,
+        paymentConvenio,
+        paymentServiceAccount,
+        paymentNotes,
       });
       showToast(els.toast, "Gasto actualizado");
     } else {
@@ -445,6 +460,9 @@ async function onExpenseFormSubmit(ev) {
         dueDate,
         category,
         recurringMonthly,
+        paymentConvenio,
+        paymentServiceAccount,
+        paymentNotes,
       });
       showToast(els.toast, "Gasto añadido");
     }

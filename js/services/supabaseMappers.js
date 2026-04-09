@@ -17,6 +17,9 @@ export function mapExpenseFromDb(row) {
   } else if (dr != null && dr !== "") {
     due = String(dr).slice(0, 10);
   }
+  const pc = row.pay_convenio;
+  const psa = row.pay_service_account;
+  const pn = row.pay_notes;
   return {
     id: String(row.id),
     name: String(row.name ?? ""),
@@ -26,6 +29,9 @@ export function mapExpenseFromDb(row) {
     paid: Boolean(row.paid),
     recurringMonthly: Boolean(row.recurring_monthly),
     paidAt: row.paid_at == null ? null : String(row.paid_at),
+    paymentConvenio: pc == null || String(pc).trim() === "" ? null : String(pc).trim(),
+    paymentServiceAccount: psa == null || String(psa).trim() === "" ? null : String(psa).trim(),
+    paymentNotes: pn == null || String(pn).trim() === "" ? null : String(pn).trim(),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
   };

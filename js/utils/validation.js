@@ -3,13 +3,16 @@ import { roundMoney } from "./money.js";
 
 /**
  * @param {FormData} fd
- * @returns {{ ok: true, name: string, amount: number, dueDate: string, category: string | null, recurringMonthly: boolean } | { ok: false, message: string }}
+ * @returns {{ ok: true, name: string, amount: number, dueDate: string, category: string | null, recurringMonthly: boolean, paymentConvenio: string | null, paymentServiceAccount: string | null, paymentNotes: string | null } | { ok: false, message: string }}
  */
 export function validateExpenseFormData(fd) {
   const name = String(fd.get("name") ?? "").trim();
   const dueDate = String(fd.get("dueDate") ?? "").trim();
   const amountStr = String(fd.get("amount") ?? "").trim();
   const categoryRaw = String(fd.get("category") ?? "").trim();
+  const paymentConvenioRaw = String(fd.get("paymentConvenio") ?? "").trim();
+  const paymentServiceAccountRaw = String(fd.get("paymentServiceAccount") ?? "").trim();
+  const paymentNotesRaw = String(fd.get("paymentNotes") ?? "").trim();
   const recurringMonthly = fd.get("recurringMonthly") === "on";
 
   if (!name) {
@@ -40,6 +43,9 @@ export function validateExpenseFormData(fd) {
     dueDate: dueNormalized,
     category: categoryRaw ? categoryRaw : null,
     recurringMonthly,
+    paymentConvenio: paymentConvenioRaw ? paymentConvenioRaw : null,
+    paymentServiceAccount: paymentServiceAccountRaw ? paymentServiceAccountRaw : null,
+    paymentNotes: paymentNotesRaw ? paymentNotesRaw : null,
   };
 }
 

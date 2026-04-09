@@ -190,6 +190,41 @@
             <label for="expense-category">Categoría <span class="optional">(opcional)</span></label>
             <input id="expense-category" name="category" type="text" autocomplete="off" placeholder="Vivienda, ocio…" />
           </div>
+          <p class="form__section-label">Datos de pago / servicio <span class="optional">(opcional)</span></p>
+          <p class="form__hint form__hint--tight">Guarda convenio, cuenta del servicio o notas (CLABE, banco, app) para no olvidarlos al pagar.</p>
+          <div class="form__row">
+            <div class="form__field">
+              <label for="expense-pay-convenio">Convenio / referencia</label>
+              <input
+                id="expense-pay-convenio"
+                name="paymentConvenio"
+                type="text"
+                autocomplete="off"
+                placeholder="Ej. 123456789"
+              />
+            </div>
+            <div class="form__field">
+              <label for="expense-pay-service">Cuenta o contrato del servicio</label>
+              <input
+                id="expense-pay-service"
+                name="paymentServiceAccount"
+                type="text"
+                autocomplete="off"
+                placeholder="Nº de servicio, cuenta contrato…"
+              />
+            </div>
+          </div>
+          <div class="form__field">
+            <label for="expense-pay-notes">Notas (dónde pagar, cuenta depósito, etc.)</label>
+            <textarea
+              id="expense-pay-notes"
+              name="paymentNotes"
+              class="form__textarea"
+              rows="3"
+              autocomplete="off"
+              placeholder="Ej. Depósito en BBVA ****1234 · pagar en app CFE…"
+            ></textarea>
+          </div>
           <div class="form__field form__field--checkbox">
             <label class="form__check-label">
               <input id="expense-recurring" name="recurringMonthly" type="checkbox" value="on" />

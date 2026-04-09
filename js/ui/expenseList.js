@@ -32,6 +32,16 @@ function paidSortKey(e, paymentHistory) {
   return t ? new Date(t).getTime() : 0;
 }
 
+/** @param {import('../models/expense.js').Expense} e */
+function formatExpensePaymentExtras(e) {
+  const parts = [];
+  if (e.paymentConvenio) parts.push(`Convenio: ${escapeHtml(e.paymentConvenio)}`);
+  if (e.paymentServiceAccount) parts.push(`Cuenta servicio: ${escapeHtml(e.paymentServiceAccount)}`);
+  const line = parts.length ? `<p class="expense-card__details">${parts.join(" · ")}</p>` : "";
+  const notes = e.paymentNotes ? `<p class="expense-card__notes">${escapeHtml(e.paymentNotes)}</p>` : "";
+  return line + notes;
+}
+
 /**
  * @param {HTMLElement} root
  * @param {import('../models/expense.js').Expense[]} expenses
@@ -118,6 +128,7 @@ export function renderExpenseList(root, expenses, filter, handlers, paymentHisto
           </div>
           <span class="expense-card__amount">${formatMoney(e.amount)}</span>
         </div>
+        ${formatExpensePaymentExtras(e)}
         <p class="expense-card__meta">Vence: ${formatDueDate(e.dueDate)} · ${dueLabel}</p>
         ${paidMeta}
         <div class="expense-card__actions">${actions}</div>

@@ -29,6 +29,10 @@ create table if not exists public.debts (
 );
 
 -- Optional columns (run if missing)
+alter table public.expenses add column if not exists pay_convenio text;
+alter table public.expenses add column if not exists pay_service_account text;
+alter table public.expenses add column if not exists pay_notes text;
+
 alter table public.expenses add column if not exists category text;
 alter table public.expenses add column if not exists recurring_monthly boolean not null default false;
 alter table public.expenses add column if not exists updated_at timestamp with time zone default now();

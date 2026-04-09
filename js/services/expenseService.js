@@ -63,7 +63,16 @@ function assertValidExpensePayload(input) {
 
   const recurringMonthly = Boolean(input.recurringMonthly);
 
-  return { name, amount, dueDate, category, recurringMonthly };
+  const opt = (v) => {
+    if (v == null) return null;
+    const t = String(v).trim();
+    return t === "" ? null : t;
+  };
+  const paymentConvenio = opt(input.paymentConvenio);
+  const paymentServiceAccount = opt(input.paymentServiceAccount);
+  const paymentNotes = opt(input.paymentNotes);
+
+  return { name, amount, dueDate, category, recurringMonthly, paymentConvenio, paymentServiceAccount, paymentNotes };
 }
 
 /**
@@ -72,7 +81,7 @@ function assertValidExpensePayload(input) {
  * Omits paid_at (DB NULL), debt_id, created_at, updated_at, id.
  */
 function buildExpenseInsertPayload(
-  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean }} */ v
+  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean; paymentConvenio: string | null; paymentServiceAccount: string | null; paymentNotes: string | null }} */ v
 ) {
   /** @type {Record<string, unknown>} */
   const payload = {
@@ -81,6 +90,9 @@ function buildExpenseInsertPayload(
     due_date: v.dueDate,
     paid: false,
     recurring_monthly: v.recurringMonthly,
+    pay_convenio: v.paymentConvenio,
+    pay_service_account: v.paymentServiceAccount,
+    pay_notes: v.paymentNotes,
   };
   if (v.category != null && v.category !== "") {
     payload.category = v.category;
@@ -92,7 +104,7 @@ function buildExpenseInsertPayload(
  * UPDATE — name, amount, due_date, category (null clears).
  */
 function buildExpenseUpdatePayload(
-  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean }} */ v
+  /** @type {{ name: string; amount: number; dueDate: string; category: string | null; recurringMonthly: boolean; paymentConvenio: string | null; paymentServiceAccount: string | null; paymentNotes: string | null }} */ v
 ) {
   return {
     name: v.name,
@@ -100,6 +112,9 @@ function buildExpenseUpdatePayload(
     due_date: v.dueDate,
     category: v.category != null && v.category !== "" ? v.category : null,
     recurring_monthly: v.recurringMonthly,
+    pay_convenio: v.paymentConvenio,
+    pay_service_account: v.paymentServiceAccount,
+    pay_notes: v.paymentNotes,
   };
 }
 
@@ -115,7 +130,7 @@ export async function listExpenses() {
 }
 
 /**
- * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean }} input
+ * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean; paymentConvenio?: string | null; paymentServiceAccount?: string | null; paymentNotes?: string | null }} input
  */
 export async function createExpense(input) {
   const v = assertValidExpensePayload(input);
@@ -137,7 +152,7 @@ export async function createExpense(input) {
 
 /**
  * @param {string} id
- * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean }} patch
+ * @param {{ name: string; amount: number; dueDate: string; category?: string | null; recurringMonthly?: boolean; paymentConvenio?: string | null; paymentServiceAccount?: string | null; paymentNotes?: string | null }} patch
  */
 export async function updateExpense(id, patch) {
   const v = assertValidExpensePayload(patch);

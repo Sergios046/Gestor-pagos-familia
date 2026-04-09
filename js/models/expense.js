@@ -9,6 +9,9 @@ import { roundMoney } from "../utils/money.js";
  * @property {number} amount
  * @property {string} dueDate ISO date YYYY-MM-DD
  * @property {string|null} category
+ * @property {string|null} [paymentConvenio]
+ * @property {string|null} [paymentServiceAccount]
+ * @property {string|null} [paymentNotes]
  * @property {boolean} paid
  * @property {boolean} recurringMonthly
  * @property {string|null} paidAt ISO datetime
@@ -29,6 +32,18 @@ export function buildExpense(input) {
     amount: Math.max(0, roundMoney(input.amount)),
     dueDate: input.dueDate,
     category: input.category ? String(input.category).trim() : null,
+    paymentConvenio:
+      input.paymentConvenio != null && String(input.paymentConvenio).trim() !== ""
+        ? String(input.paymentConvenio).trim()
+        : null,
+    paymentServiceAccount:
+      input.paymentServiceAccount != null && String(input.paymentServiceAccount).trim() !== ""
+        ? String(input.paymentServiceAccount).trim()
+        : null,
+    paymentNotes:
+      input.paymentNotes != null && String(input.paymentNotes).trim() !== ""
+        ? String(input.paymentNotes).trim()
+        : null,
     paid: Boolean(input.paid),
     recurringMonthly: Boolean(input.recurringMonthly),
     paidAt: input.paidAt ?? null,
@@ -63,5 +78,8 @@ export function normalizeExpenses(raw) {
     ...e,
     amount: Math.max(0, roundMoney(e.amount)),
     recurringMonthly: Boolean(e.recurringMonthly),
+    paymentConvenio: e.paymentConvenio ?? null,
+    paymentServiceAccount: e.paymentServiceAccount ?? null,
+    paymentNotes: e.paymentNotes ?? null,
   }));
 }
