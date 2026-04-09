@@ -5,8 +5,8 @@
  */
 export function toErrorMessage(err) {
   if (err == null) return "Error desconocido";
-  if (typeof err === "string") return err;
-  if (err instanceof Error) return err.message || "Error";
+  if (typeof err === "string") return mapAuthHints(err);
+  if (err instanceof Error) return mapAuthHints(err.message || "Error");
 
   if (typeof err === "object") {
     const o = /** @type {Record<string, unknown>} */ (err);
@@ -16,12 +16,27 @@ export function toErrorMessage(err) {
       o.hint,
       o.code && `(${o.code})`,
     ].filter((x) => x != null && String(x).trim() !== "");
-    if (parts.length > 0) return parts.map(String).join(" — ");
+    if (parts.length > 0) return mapAuthHints(parts.map(String).join(" — "));
   }
 
   try {
-    return JSON.stringify(err);
+    return mapAuthHints(JSON.stringify(err));
   } catch {
-    return String(err);
+    return mapAuthHints(String(err));
   }
+}
+
+/** @param {string} msg */
+function mapAuthHints(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes("rate limit") || m.includes("email rate limit")) {
+    return "Demasiados intentos con el correo. Espera ~1 hora o entra con «Ya tengo cuenta» si ya registraste.";
+  }
+  if (m.includes("email not confirmed") || m.includes("email_not_confirmed")) {
+    return "Correo sin confirmar. Abre el enlace del mail o desactiva «Confirm email» en Supabase (Auth → Email).";
+  }
+  if (m.includes("invalid login credentials")) {
+    return "Correo o contraseña incorrectos.";
+  }
+  return msg;
 }

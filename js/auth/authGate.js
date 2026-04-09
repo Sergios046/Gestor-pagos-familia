@@ -40,6 +40,7 @@ export function mountAuthGate({ onSignedIn, showToast }) {
 
     const supabase = getSupabase();
     try {
+      submitBtn.disabled = true;
       if (registerMode) {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -53,10 +54,25 @@ export function mountAuthGate({ onSignedIn, showToast }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
+
+      let session = (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        await new Promise((r) => setTimeout(r, 300));
+        session = (await supabase.auth.getSession()).data.session;
+      }
+      if (!session) {
+        showToast(
+          "No se guardó la sesión. Prueba: quitar modo privado en Safari, borrar datos de este sitio en Ajustes, o otro navegador."
+        );
+        return;
+      }
+
       passIn.value = "";
       onSignedIn();
     } catch (err) {
       showToast(toErrorMessage(err));
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 }

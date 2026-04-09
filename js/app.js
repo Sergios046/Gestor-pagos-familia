@@ -42,12 +42,15 @@ const store = createStore(/** @type {AppState} */ (initialState));
 const authGate = document.getElementById("auth-gate");
 const appShell = document.getElementById("app-shell");
 
-/** Cierra el login aunque el CSS esté cacheado viejo (SW devolvía components.css sin .auth-gate[hidden]). */
+/**
+ * Quita el login del DOM (no solo ocultarlo): evita que un CSS viejo o capas raras sigan bloqueando toques.
+ */
 function hideAuthGate() {
   if (!authGate) return;
   authGate.hidden = true;
   authGate.style.setProperty("display", "none", "important");
   authGate.setAttribute("aria-hidden", "true");
+  authGate.remove();
 }
 
 function showAuthGate() {
@@ -55,6 +58,18 @@ function showAuthGate() {
   authGate.hidden = false;
   authGate.style.removeProperty("display");
   authGate.removeAttribute("aria-hidden");
+}
+
+function showAppShell() {
+  if (!appShell) return;
+  appShell.hidden = false;
+  appShell.style.removeProperty("display");
+}
+
+function hideAppShell() {
+  if (!appShell) return;
+  appShell.hidden = true;
+  appShell.style.setProperty("display", "none", "important");
 }
 
 const els = {
@@ -436,7 +451,7 @@ let ensureAppPromise = null;
 
 async function showAppAndStart() {
   hideAuthGate();
-  if (appShell) appShell.hidden = false;
+  showAppShell();
   await ensureAppStarted();
 }
 
@@ -481,7 +496,7 @@ async function boot() {
     await showAppAndStart();
   } else {
     showAuthGate();
-    if (appShell) appShell.hidden = true;
+    hideAppShell();
   }
 
   supabase.auth.onAuthStateChange((event, sessionNext) => {
@@ -494,7 +509,7 @@ async function boot() {
     }
     if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
       hideAuthGate();
-      if (appShell) appShell.hidden = false;
+      showAppShell();
       if (appStarted) {
         void reloadData();
       } else {
