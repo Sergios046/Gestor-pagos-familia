@@ -129,7 +129,8 @@ function syncUI() {
   if (els.dashboardRoot) {
     renderDashboard(els.dashboardRoot, state.expenses, state.debts, state.paymentHistory);
   }
-  if (els.expenseListRoot) {
+  // Solo repintar listas pesadas de la vista visible: menos trabajo DOM en móvil.
+  if (els.expenseListRoot && state.view === "expenses") {
     renderExpenseList(els.expenseListRoot, state.expenses, state.filter, {
       onPaid: (id) => handlePaid(id),
       onUnpaid: (id) => handleUnpaid(id),
@@ -137,7 +138,7 @@ function syncUI() {
       onDelete: (id) => handleDelete(id),
     });
   }
-  if (els.debtListRoot) {
+  if (els.debtListRoot && state.view === "debts") {
     renderDebtList(els.debtListRoot, state.debts, {
       onPay: (id) => handleDebtPayment(id),
       onEdit: (id) => openDebtModalForEdit(id),
@@ -155,15 +156,21 @@ function syncUI() {
   });
 }
 
+/** Evita aplicar datos viejos si hubo otra recarga mientras la red tardaba (mejor en redes móviles). */
+let reloadGeneration = 0;
+
 async function reloadData() {
+  const gen = ++reloadGeneration;
   try {
-    let paymentHistory = /** @type {PaymentHistoryRow[]} */ ([]);
-    try {
-      paymentHistory = await listPaymentHistory();
-    } catch (histErr) {
-      console.warn("[Historial]", histErr);
-    }
-    const [expenses, debts] = await Promise.all([listExpenses(), listDebts()]);
+    const [expenses, debts, paymentHistory] = await Promise.all([
+      listExpenses(),
+      listDebts(),
+      listPaymentHistory().catch((histErr) => {
+        console.warn("[Historial]", histErr);
+        return /** @type {PaymentHistoryRow[]} */ ([]);
+      }),
+    ]);
+    if (gen !== reloadGeneration) return;
     store.setState((s) => {
       s.expenses = expenses;
       s.debts = debts;
@@ -171,6 +178,7 @@ async function reloadData() {
     });
     syncUI();
   } catch (err) {
+    if (gen !== reloadGeneration) return;
     console.error(err);
     showToast(els.toast, toErrorMessage(err));
   }

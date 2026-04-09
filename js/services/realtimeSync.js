@@ -14,9 +14,10 @@ export function subscribeExpensesAndDebts(onReload) {
   let timer = 0;
   const run = () => {
     clearTimeout(timer);
+    /* Ate burbujas de eventos en móvil / redes lentas; menos recargas completas seguidas. */
     timer = window.setTimeout(() => {
       Promise.resolve(onReload()).catch(() => {});
-    }, 100);
+    }, 380);
   };
 
   const supabase = getSupabase();

@@ -25,6 +25,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* `fixed` suele provocar tirones al desplazar en Safari/Android. */
+@media (max-width: 48rem) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
