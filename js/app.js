@@ -175,12 +175,18 @@ function syncUI() {
   if (els.expenseListRoot && state.view === "expenses") {
     const expQ = els.expenseSearch?.value ?? "";
     const expensesShown = filterExpensesBySearch(state.expenses, expQ);
-    renderExpenseList(els.expenseListRoot, expensesShown, state.filter, {
-      onPaid: (id) => handlePaid(id),
-      onUnpaid: (id) => handleUnpaid(id),
-      onEdit: (id) => openExpenseModalForEdit(id),
-      onDelete: (id) => handleDelete(id),
-    });
+    renderExpenseList(
+      els.expenseListRoot,
+      expensesShown,
+      state.filter,
+      {
+        onPaid: (id) => handlePaid(id),
+        onUnpaid: (id) => handleUnpaid(id),
+        onEdit: (id) => openExpenseModalForEdit(id),
+        onDelete: (id) => handleDelete(id),
+      },
+      state.paymentHistory
+    );
   }
   if (els.debtListRoot && state.view === "debts") {
     const debtQ = els.debtSearch?.value ?? "";

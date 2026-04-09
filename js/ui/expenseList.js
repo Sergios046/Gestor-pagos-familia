@@ -1,21 +1,56 @@
 import { formatMoney } from "../utils/money.js";
-import { parseLocalDate, daysUntil, isDueMonthOnOrBeforeCurrent } from "../utils/dates.js";
+import { parseLocalDate, daysUntil, isDueMonthOnOrBeforeCurrent, yearMonthLocal } from "../utils/dates.js";
+
+/**
+ * Recurrentes quedan `paid: false` en BD al avanzar fecha; en «Pagados» usamos el historial del mes.
+ * @param {import('../models/expense.js').Expense} e
+ * @param {import('../services/paymentHistoryService.js').PaymentHistoryRow[]} paymentHistory
+ */
+function hasRecurringPaymentThisMonth(e, paymentHistory) {
+  if (!e.recurringMonthly) return false;
+  const ym = yearMonthLocal(new Date());
+  return paymentHistory.some(
+    (ev) => ev.kind === "expense" && ev.refId === e.id && yearMonthLocal(ev.paidAt) === ym
+  );
+}
+
+/** @param {import('../models/expense.js').Expense} e */
+function latestExpensePaymentThisMonth(e, paymentHistory) {
+  const ym = yearMonthLocal(new Date());
+  let latest = "";
+  for (const ev of paymentHistory) {
+    if (ev.kind !== "expense" || ev.refId !== e.id) continue;
+    if (yearMonthLocal(ev.paidAt) !== ym) continue;
+    if (!latest || ev.paidAt > latest) latest = ev.paidAt;
+  }
+  return latest || null;
+}
+
+function paidSortKey(e, paymentHistory) {
+  if (e.paid && e.paidAt) return new Date(e.paidAt).getTime();
+  const t = latestExpensePaymentThisMonth(e, paymentHistory);
+  return t ? new Date(t).getTime() : 0;
+}
 
 /**
  * @param {HTMLElement} root
  * @param {import('../models/expense.js').Expense[]} expenses
  * @param {'pending' | 'paid' | 'all'} filter
  * @param {object} handlers
+ * @param {import('../services/paymentHistoryService.js').PaymentHistoryRow[]} [paymentHistory]
  */
-export function renderExpenseList(root, expenses, filter, handlers) {
+export function renderExpenseList(root, expenses, filter, handlers, paymentHistory = []) {
   const filtered =
     filter === "all"
       ? expenses
       : filter === "paid"
-        ? expenses.filter((e) => e.paid)
+        ? expenses.filter((e) => e.paid || hasRecurringPaymentThisMonth(e, paymentHistory))
         : expenses.filter((e) => !e.paid);
 
   const sorted = [...filtered].sort((a, b) => {
+    if (filter === "paid") {
+      return paidSortKey(b, paymentHistory) - paidSortKey(a, paymentHistory);
+    }
     if (a.paid !== b.paid) return a.paid ? 1 : -1;
     if (!a.paid && !b.paid) {
       return parseLocalDate(a.dueDate) - parseLocalDate(b.dueDate);
@@ -33,35 +68,49 @@ export function renderExpenseList(root, expenses, filter, handlers) {
 
   root.innerHTML = sorted
     .map((e) => {
+      const recurringPaid = hasRecurringPaymentThisMonth(e, paymentHistory);
+      const showPaidStyle = e.paid || recurringPaid;
       const cat = e.category
         ? `<span class="expense-card__badge">${escapeHtml(e.category)}</span>`
         : "";
       const recur = e.recurringMonthly
         ? `<span class="expense-card__badge expense-card__badge--recurring">Cada mes</span>`
         : "";
-      const dueLabel = formatDueLabel(e);
-      const paidMeta = e.paid && e.paidAt
-        ? `<p class="expense-card__meta">Pagado el ${formatPaidDate(e.paidAt)}</p>`
-        : "";
+      const dueLabel = formatDueLabel(e, recurringPaid);
+      const histPaidAt = recurringPaid ? latestExpensePaymentThisMonth(e, paymentHistory) : null;
+      const paidMeta =
+        e.paid && e.paidAt
+          ? `<p class="expense-card__meta">Pagado el ${formatPaidDate(e.paidAt)}</p>`
+          : recurringPaid && histPaidAt
+            ? `<p class="expense-card__meta">Cuota registrada el ${formatPaidDate(histPaidAt)}</p>`
+            : "";
 
       const canMarkPaid = isDueMonthOnOrBeforeCurrent(e.dueDate);
       const payBlockedTitle = !canMarkPaid
         ? "El vencimiento está en un mes futuro; no puedes marcar pagado hasta entonces (o cambia la fecha en Editar)."
         : "";
-      const actions = e.paid
-        ? `
+      let actions;
+      if (e.paid) {
+        actions = `
         <button type="button" class="btn btn--ghost btn--small" data-action="unpaid" data-id="${e.id}">Marcar pendiente</button>
         <button type="button" class="btn btn--outline btn--small" data-action="edit" data-id="${e.id}">Editar</button>
         <button type="button" class="btn btn--ghost btn--small" data-action="delete" data-id="${e.id}" style="color:var(--color-danger);border-color:transparent">Eliminar</button>
-      `
-        : `
+      `;
+      } else if (recurringPaid) {
+        actions = `
+        <button type="button" class="btn btn--outline btn--small" data-action="edit" data-id="${e.id}">Editar</button>
+        <button type="button" class="btn btn--ghost btn--small" data-action="delete" data-id="${e.id}" style="color:var(--color-danger);border-color:transparent">Eliminar</button>
+      `;
+      } else {
+        actions = `
         <button type="button" class="btn btn--success btn--small" data-action="paid" data-id="${e.id}" ${canMarkPaid ? "" : "disabled"} title="${escapeAttr(payBlockedTitle)}">Marcar pagado</button>
         <button type="button" class="btn btn--outline btn--small" data-action="edit" data-id="${e.id}">Editar</button>
         <button type="button" class="btn btn--ghost btn--small" data-action="delete" data-id="${e.id}" style="color:var(--color-danger);border-color:transparent">Eliminar</button>
       `;
+      }
 
       return `
-      <article class="expense-card${e.paid ? " expense-card--paid" : ""}" data-id="${e.id}">
+      <article class="expense-card${showPaidStyle ? " expense-card--paid" : ""}" data-id="${e.id}">
         <div class="expense-card__head">
           <div>
             <h3 class="expense-card__title">${escapeHtml(e.name)}</h3>
@@ -115,8 +164,9 @@ function formatPaidDate(iso) {
 }
 
 /** @param {import('../models/expense.js').Expense} e */
-function formatDueLabel(e) {
+function formatDueLabel(e, recurringPaidThisMonth = false) {
   if (e.paid) return "Pagado";
+  if (recurringPaidThisMonth) return "Pagado este mes (siguiente vencimiento arriba)";
   const d = daysUntil(e.dueDate);
   if (d < 0) return `Retrasado ${Math.abs(d)} d.`;
   if (d === 0) return "Hoy";
