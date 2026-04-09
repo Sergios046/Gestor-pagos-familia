@@ -5,13 +5,16 @@ import { daysUntil, isInCurrentMonth, parseLocalDate } from "../utils/dates.js";
  * @param {HTMLElement} root
  * @param {import('../models/expense.js').Expense[]} expenses
  * @param {import('../models/debt.js').Debt[]} debts
+ * @param {import('../services/paymentHistoryService.js').PaymentHistoryRow[]} [paymentHistory]
  */
-export function renderDashboard(root, expenses, debts) {
+export function renderDashboard(root, expenses, debts, paymentHistory = []) {
   const pending = expenses.filter((e) => !e.paid);
   const totalPending = roundMoney(pending.reduce((s, e) => s + e.amount, 0));
 
-  const paidThisMonth = expenses.filter((e) => e.paid && isInCurrentMonth(e.paidAt));
-  const totalPaidMonth = roundMoney(paidThisMonth.reduce((s, e) => s + e.amount, 0));
+  // Mismo origen que el historial: suma de payment_events del mes (gastos + deudas).
+  const totalPaidMonth = roundMoney(
+    paymentHistory.filter((ev) => isInCurrentMonth(ev.paidAt)).reduce((s, ev) => s + ev.amount, 0)
+  );
 
   const totalDebtRemaining = roundMoney(debts.reduce((s, d) => s + d.remainingBalance, 0));
 

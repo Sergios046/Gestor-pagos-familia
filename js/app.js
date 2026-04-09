@@ -127,7 +127,7 @@ function syncUI() {
   const state = store.getState();
   syncView();
   if (els.dashboardRoot) {
-    renderDashboard(els.dashboardRoot, state.expenses, state.debts);
+    renderDashboard(els.dashboardRoot, state.expenses, state.debts, state.paymentHistory);
   }
   if (els.expenseListRoot) {
     renderExpenseList(els.expenseListRoot, state.expenses, state.filter, {
