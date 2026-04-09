@@ -495,7 +495,7 @@
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary-mid), #38bdf8);
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.4s var(--ease-smooth);
 }
 
 .progress__label {
@@ -639,7 +639,7 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--color-border);
-  animation: slideUp 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  animation: modalEnterMobile 0.34s var(--ease-out) both;
 }
 
 .modal__panel::before {
@@ -661,7 +661,7 @@
   }
 }
 
-@keyframes slideUp {
+@keyframes modalEnterMobile {
   from {
     transform: translateY(100%);
     opacity: 0;
@@ -669,6 +669,23 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes modalEnterDesktop {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 480px) {
+  .modal__panel {
+    animation-name: modalEnterDesktop;
   }
 }
 
@@ -853,4 +870,46 @@
 
 .toast[hidden] {
   display: none !important;
+}
+
+.btn:focus-visible,
+.app-nav__btn:focus-visible,
+.segmented__btn:focus-visible {
+  outline: 2px solid var(--color-primary-mid);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stat-card,
+  .debt-card,
+  .expense-card:not(.expense-card--paid),
+  .panel {
+    transition:
+      transform 0.22s var(--ease-smooth),
+      box-shadow 0.22s var(--ease-smooth);
+  }
+
+  .auth-gate__panel {
+    transition: transform 0.25s var(--ease-smooth), box-shadow 0.25s var(--ease-smooth);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .stat-card:hover,
+    .debt-card:hover,
+    .expense-card:not(.expense-card--paid):hover,
+    .panel:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal__panel {
+    animation: none;
+  }
+
+  .progress__bar {
+    transition: none;
+  }
 }

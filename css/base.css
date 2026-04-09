@@ -13,12 +13,16 @@ body {
   min-height: 100dvh;
   font-family: var(--font-sans);
   font-size: 1rem;
-  line-height: 1.55;
+  line-height: 1.6;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   color: var(--color-text);
   background-color: var(--color-bg);
   background-image: var(--color-bg-mesh);
   background-attachment: fixed;
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-4));
+  text-rendering: optimizeLegibility;
 }
 
 .visually-hidden {

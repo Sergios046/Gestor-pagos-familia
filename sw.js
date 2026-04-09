@@ -1,7 +1,7 @@
 /**
  * Service worker — assets cache. HTML/navegación: red primero para no quedarte en una versión vieja (login, etc.).
  */
-const CACHE = "gestor-pagos-v11";
+const CACHE = "gestor-pagos-v12";
 
 /** Sin index.html aquí: la primera carga del documento va a red y luego se guarda en caché. */
 const ASSETS = [
