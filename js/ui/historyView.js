@@ -3,11 +3,13 @@ import { formatMoney, roundMoney } from "../utils/money.js";
 /**
  * @param {HTMLElement} root
  * @param {import('../services/paymentHistoryService.js').PaymentHistoryRow[]} events
+ * @param {boolean} [hasActiveFilter] hay texto de filtro pero sin resultados
  */
-export function renderHistory(root, events) {
+export function renderHistory(root, events, hasActiveFilter = false) {
   if (!events.length) {
-    root.innerHTML =
-      '<div class="empty-state"><p>Aún no hay pagos en el historial.</p><p class="history-empty-hint">Al marcar un gasto como pagado o registrar una cuota de deuda, aparecerá aquí.</p></div>';
+    root.innerHTML = hasActiveFilter
+      ? '<div class="empty-state"><p>No hay movimientos que coincidan.</p><p class="history-empty-hint">Prueba otro nombre o deja el campo vacío para ver todo el historial.</p></div>'
+      : '<div class="empty-state"><p>Aún no hay pagos en el historial.</p><p class="history-empty-hint">Al marcar un gasto como pagado o registrar una cuota de deuda, aparecerá aquí.</p></div>';
     return;
   }
 

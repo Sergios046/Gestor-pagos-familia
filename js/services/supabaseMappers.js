@@ -1,3 +1,4 @@
+import { todayISO } from "../utils/dates.js";
 import { normalizeDebts } from "../models/debt.js";
 import { normalizeExpenses } from "../models/expense.js";
 
@@ -38,12 +39,24 @@ export function mapDebtFromDb(row) {
   const ref = row.reference_number;
   const conv = row.convenio;
   const inf = row.infonavit_credit;
+  const dr = row.due_date;
+  let due = "";
+  if (dr instanceof Date && !Number.isNaN(dr.getTime())) {
+    const y = dr.getFullYear();
+    const m = String(dr.getMonth() + 1).padStart(2, "0");
+    const d = String(dr.getDate()).padStart(2, "0");
+    due = `${y}-${m}-${d}`;
+  } else if (dr != null && dr !== "") {
+    due = String(dr).slice(0, 10);
+  }
+  if (!due) due = todayISO();
   return {
     id: String(row.id),
     name: String(row.name ?? ""),
     totalAmount: Number(row.total_amount),
     monthlyPayment: Number(row.monthly_payment),
     remainingBalance: Number(row.remaining_balance),
+    dueDate: due,
     referenceNumber: ref == null || ref === "" ? null : String(ref),
     convenio: conv == null || conv === "" ? null : String(conv),
     infonavitCredit: inf == null || inf === "" ? null : String(inf),

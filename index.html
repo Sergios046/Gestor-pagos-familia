@@ -95,6 +95,18 @@
             <button type="button" class="segmented__btn" data-filter="paid" role="tab" aria-selected="false">Pagados</button>
             <button type="button" class="segmented__btn" data-filter="all" role="tab" aria-selected="false">Todos</button>
           </div>
+          <div class="toolbar-search">
+            <label for="search-expenses" class="visually-hidden">Buscar gastos</label>
+            <input
+              id="search-expenses"
+              type="search"
+              class="toolbar-search__input"
+              data-search-expenses
+              placeholder="Buscar (nombre o categoría)…"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+          </div>
           <button type="button" class="btn btn--primary btn--block" data-action="open-expense-form">
             + Añadir gasto
           </button>
@@ -106,6 +118,18 @@
         <div class="expenses-toolbar">
           <h2 id="debts-heading" class="expenses-toolbar__title">Deudas</h2>
           <p class="debts-intro">Registra pagos mensuales; el saldo pendiente se actualiza solo.</p>
+          <div class="toolbar-search">
+            <label for="search-debts" class="visually-hidden">Buscar deudas</label>
+            <input
+              id="search-debts"
+              type="search"
+              class="toolbar-search__input"
+              data-search-debts
+              placeholder="Buscar deuda (nombre o referencia)…"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+          </div>
           <button type="button" class="btn btn--primary btn--block" data-action="open-debt-form">
             + Añadir deuda
           </button>
@@ -117,6 +141,20 @@
         <div class="expenses-toolbar">
           <h2 id="history-heading" class="expenses-toolbar__title">Historial de pagos</h2>
           <p class="debts-intro">Gastos marcados como pagados y cuotas registradas en deudas, ordenados por fecha.</p>
+          <div class="toolbar-search">
+            <label for="search-history" class="visually-hidden">Filtrar historial por nombre</label>
+            <input
+              id="search-history"
+              type="search"
+              class="toolbar-search__input"
+              data-search-history
+              list="history-titles-datalist"
+              placeholder="Filtrar por nombre (luz, agua, préstamo…)…"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+            <datalist id="history-titles-datalist"></datalist>
+          </div>
           <button type="button" class="btn btn--ghost btn--block history-toolbar__clear" data-action="clear-payment-history">
             Borrar historial
           </button>
@@ -179,6 +217,10 @@
           <div class="form__field">
             <label for="debt-name">Nombre</label>
             <input id="debt-name" name="name" type="text" required autocomplete="off" placeholder="Ej. Hipoteca, Infonavit…" />
+          </div>
+          <div class="form__field">
+            <label for="debt-due">Próxima cuota (vencimiento)</label>
+            <input id="debt-due" name="dueDate" type="date" required />
           </div>
           <p class="form__section-label">Datos de la deuda <span class="optional">(opcional)</span></p>
           <p class="form__hint form__hint--tight">Nº de referencia, convenio y crédito Infonavit: solo dígitos, sin espacios.</p>

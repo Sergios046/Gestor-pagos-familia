@@ -1,6 +1,6 @@
 import { normalizeDebts } from "../models/debt.js";
 import { roundMoney } from "../utils/money.js";
-import { nowISO } from "../utils/dates.js";
+import { nowISO, normalizeDueDateToYYYYMMDD, addMonthsPreserveDay, isDueMonthOnOrBeforeCurrent } from "../utils/dates.js";
 import { toErrorMessage } from "../utils/supabaseErrors.js";
 import { getSupabase } from "./supabaseClient.js";
 import { mapDebtFromDb, normalizeDebtRow } from "./supabaseMappers.js";
@@ -37,11 +37,20 @@ function optionalDigitsOnly(label, raw) {
 }
 
 /**
- * @param {{ name: unknown; totalAmount: unknown; monthlyPayment: unknown; remainingBalance?: unknown; referenceNumber?: unknown; convenio?: unknown; infonavitCredit?: unknown }} input
+ * @param {{ name: unknown; totalAmount: unknown; monthlyPayment: unknown; remainingBalance?: unknown; dueDate?: unknown; referenceNumber?: unknown; convenio?: unknown; infonavitCredit?: unknown }} input
  */
 function assertValidDebtInput(input) {
   const name = String(input.name ?? "").trim();
   if (!name) throw new Error("El nombre de la deuda es obligatorio.");
+
+  const dueRaw = input.dueDate;
+  if (dueRaw == null || String(dueRaw).trim() === "") {
+    throw new Error("La fecha de la próxima cuota es obligatoria.");
+  }
+  const dueDate = normalizeDueDateToYYYYMMDD(dueRaw);
+  if (!dueDate) {
+    throw new Error("La fecha de la cuota no es válida (AAAA-MM-DD).");
+  }
 
   const total = roundMoney(Number(input.totalAmount));
   if (!Number.isFinite(total) || total <= 0) {
@@ -62,18 +71,19 @@ function assertValidDebtInput(input) {
   const referenceNumber = optionalDigitsOnly("Nº de referencia", input.referenceNumber);
   const convenio = optionalDigitsOnly("Convenio", input.convenio);
   const infonavitCredit = optionalDigitsOnly("Crédito Infonavit", input.infonavitCredit);
-  return { name, total, monthly, remaining, referenceNumber, convenio, infonavitCredit };
+  return { name, total, monthly, remaining, dueDate, referenceNumber, convenio, infonavitCredit };
 }
 
 /** INSERT/UPDATE body */
 function buildDebtWritePayload(
-  /** @type {{ name: string; total: number; monthly: number; remaining: number; referenceNumber: string | null; convenio: string | null; infonavitCredit: string | null }} */ v
+  /** @type {{ name: string; total: number; monthly: number; remaining: number; dueDate: string; referenceNumber: string | null; convenio: string | null; infonavitCredit: string | null }} */ v
 ) {
   return {
     name: v.name,
     total_amount: Number(v.total),
     monthly_payment: Number(v.monthly),
     remaining_balance: Number(v.remaining),
+    due_date: v.dueDate,
     reference_number: v.referenceNumber,
     convenio: v.convenio,
     infonavit_credit: v.infonavitCredit,
@@ -111,7 +121,7 @@ export async function createDebt(input) {
 
 /**
  * @param {string} id
- * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance: number; referenceNumber?: string | null; convenio?: string | null; infonavitCredit?: string | null }} patch
+ * @param {{ name: string; totalAmount: number; monthlyPayment: number; remainingBalance: number; dueDate: string; referenceNumber?: string | null; convenio?: string | null; infonavitCredit?: string | null }} patch
  */
 export async function updateDebt(id, patch) {
   const v = assertValidDebtInput(patch);
@@ -152,12 +162,19 @@ export async function registerDebtPayment(id) {
   if (d.remainingBalance <= 0) {
     return { debt: d, applied: 0 };
   }
+  if (!isDueMonthOnOrBeforeCurrent(d.dueDate)) {
+    throw new Error(
+      "Aún no puedes registrar esta cuota: el mes de vencimiento es futuro. Vuelve cuando llegue ese mes o ajusta la fecha en Editar."
+    );
+  }
   const monthly = Math.max(0, roundMoney(d.monthlyPayment));
   const rem = roundMoney(d.remainingBalance);
   const pay = Math.min(monthly, rem);
+  const nextDue = pay > 0 ? addMonthsPreserveDay(d.dueDate, 1) : d.dueDate;
   const payload = {
     monthly_payment: Number(monthly),
     remaining_balance: Number(roundMoney(rem - pay)),
+    due_date: nextDue,
   };
   console.log("Payload (debt payment):", payload);
 

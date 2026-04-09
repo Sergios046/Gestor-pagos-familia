@@ -100,10 +100,52 @@ const els = {
   signOutBtn: document.getElementById("sign-out-btn"),
   openExpenseFormBtns: document.querySelectorAll("[data-action='open-expense-form']"),
   openDebtFormBtns: document.querySelectorAll("[data-action='open-debt-form']"),
+  expenseSearch: document.querySelector("[data-search-expenses]"),
+  debtSearch: document.querySelector("[data-search-debts]"),
+  historySearch: document.querySelector("[data-search-history]"),
 };
 
 function toastMsg(text) {
   showToast(els.toast, text);
+}
+
+/** @param {import('./models/expense.js').Expense[]} expenses */
+function filterExpensesBySearch(expenses, q) {
+  const n = q.trim().toLowerCase();
+  if (!n) return expenses;
+  return expenses.filter(
+    (e) => e.name.toLowerCase().includes(n) || (e.category && e.category.toLowerCase().includes(n))
+  );
+}
+
+/** @param {import('./models/debt.js').Debt[]} debts */
+function filterDebtsBySearch(debts, q) {
+  const raw = q.trim();
+  if (!raw) return debts;
+  const n = raw.toLowerCase();
+  const digits = raw.replace(/\s/g, "");
+  return debts.filter((d) => {
+    if (d.name.toLowerCase().includes(n)) return true;
+    if (digits && d.referenceNumber && d.referenceNumber.includes(digits)) return true;
+    if (digits && d.convenio && d.convenio.includes(digits)) return true;
+    if (digits && d.infonavitCredit && d.infonavitCredit.includes(digits)) return true;
+    return false;
+  });
+}
+
+/** @param {PaymentHistoryRow[]} history */
+function refreshHistoryDatalist(history) {
+  const dl = document.getElementById("history-titles-datalist");
+  if (!dl) return;
+  dl.innerHTML = "";
+  const titles = [...new Set(history.map((e) => e.title))].sort((a, b) =>
+    a.localeCompare(b, "es-MX", { sensitivity: "base" })
+  );
+  for (const t of titles) {
+    const o = document.createElement("option");
+    o.value = t;
+    dl.appendChild(o);
+  }
 }
 
 function syncView() {
@@ -131,7 +173,9 @@ function syncUI() {
   }
   // Solo repintar listas pesadas de la vista visible: menos trabajo DOM en móvil.
   if (els.expenseListRoot && state.view === "expenses") {
-    renderExpenseList(els.expenseListRoot, state.expenses, state.filter, {
+    const expQ = els.expenseSearch?.value ?? "";
+    const expensesShown = filterExpensesBySearch(state.expenses, expQ);
+    renderExpenseList(els.expenseListRoot, expensesShown, state.filter, {
       onPaid: (id) => handlePaid(id),
       onUnpaid: (id) => handleUnpaid(id),
       onEdit: (id) => openExpenseModalForEdit(id),
@@ -139,14 +183,21 @@ function syncUI() {
     });
   }
   if (els.debtListRoot && state.view === "debts") {
-    renderDebtList(els.debtListRoot, state.debts, {
+    const debtQ = els.debtSearch?.value ?? "";
+    const debtsShown = filterDebtsBySearch(state.debts, debtQ);
+    renderDebtList(els.debtListRoot, debtsShown, {
       onPay: (id) => handleDebtPayment(id),
       onEdit: (id) => openDebtModalForEdit(id),
       onDelete: (id) => handleDebtDelete(id),
     });
   }
+  refreshHistoryDatalist(state.paymentHistory);
   if (els.historyRoot && state.view === "history") {
-    renderHistory(els.historyRoot, state.paymentHistory);
+    const histQ = (els.historySearch?.value ?? "").trim().toLowerCase();
+    const histShown = histQ
+      ? state.paymentHistory.filter((ev) => ev.title.toLowerCase().includes(histQ))
+      : state.paymentHistory;
+    renderHistory(els.historyRoot, histShown, histQ.length > 0 && histShown.length === 0);
   }
   els.filterBtns.forEach((btn) => {
     const f = btn.getAttribute("data-filter");
@@ -327,6 +378,8 @@ function openDebtModalNew() {
   els.debtForm.reset();
   const idInput = document.getElementById("debt-id");
   if (idInput) idInput.value = "";
+  const dueEl = document.getElementById("debt-due");
+  if (dueEl) dueEl.value = todayISO();
   syncDebtRemainingMax();
   els.debtModal.hidden = false;
   document.getElementById("debt-name")?.focus();
@@ -346,6 +399,8 @@ function openDebtModalForEdit(id) {
   document.getElementById("debt-total").value = roundMoney(d.totalAmount).toFixed(2);
   document.getElementById("debt-monthly").value = roundMoney(d.monthlyPayment).toFixed(2);
   document.getElementById("debt-remaining").value = roundMoney(d.remainingBalance).toFixed(2);
+  const dueEl = document.getElementById("debt-due");
+  if (dueEl) dueEl.value = d.dueDate;
   syncDebtRemainingMax();
   els.debtModal.hidden = false;
   document.getElementById("debt-name")?.focus();
@@ -409,12 +464,14 @@ async function onDebtFormSubmit(ev) {
     showToast(els.toast, parsed.message);
     return;
   }
-  const { name, totalAmount, monthlyPayment, remainingBalance, referenceNumber, convenio, infonavitCredit } = parsed;
+  const { name, dueDate, totalAmount, monthlyPayment, remainingBalance, referenceNumber, convenio, infonavitCredit } =
+    parsed;
 
   try {
     if (id) {
       await updateDebt(id, {
         name,
+        dueDate,
         totalAmount,
         monthlyPayment,
         remainingBalance,
@@ -426,6 +483,7 @@ async function onDebtFormSubmit(ev) {
     } else {
       await createDebt({
         name,
+        dueDate,
         totalAmount,
         monthlyPayment,
         remainingBalance,
@@ -492,6 +550,14 @@ function registerDebtFormConstraints() {
   }
 }
 
+let searchDebounce = 0;
+function scheduleSearchSync() {
+  window.clearTimeout(searchDebounce);
+  searchDebounce = window.setTimeout(() => {
+    syncUI();
+  }, 100);
+}
+
 function registerForms() {
   els.openExpenseFormBtns.forEach((b) => b.addEventListener("click", () => openExpenseModalNew()));
   els.openDebtFormBtns.forEach((b) => b.addEventListener("click", () => openDebtModalNew()));
@@ -499,6 +565,9 @@ function registerForms() {
   els.debtForm?.addEventListener("submit", onDebtFormSubmit);
   document.querySelector("[data-action='clear-payment-history']")?.addEventListener("click", () => {
     void handleClearPaymentHistory();
+  });
+  [els.expenseSearch, els.debtSearch, els.historySearch].forEach((el) => {
+    el?.addEventListener("input", scheduleSearchSync);
   });
   registerDebtFormConstraints();
 }

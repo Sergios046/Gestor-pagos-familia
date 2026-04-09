@@ -62,16 +62,24 @@ function parseOptionalDigitsField(label, fd, key) {
 
 /**
  * @param {FormData} fd
- * @returns {{ ok: true, name: string, totalAmount: number, monthlyPayment: number, remainingBalance: number, referenceNumber: string | null, convenio: string | null, infonavitCredit: string | null } | { ok: false, message: string }}
+ * @returns {{ ok: true, name: string, dueDate: string, totalAmount: number, monthlyPayment: number, remainingBalance: number, referenceNumber: string | null, convenio: string | null, infonavitCredit: string | null } | { ok: false, message: string }}
  */
 export function validateDebtFormData(fd) {
   const name = String(fd.get("name") ?? "").trim();
+  const dueDateRaw = String(fd.get("dueDate") ?? "").trim();
   const totalStr = String(fd.get("totalAmount") ?? "").trim();
   const monthlyStr = String(fd.get("monthlyPayment") ?? "").trim();
   const remainingStr = String(fd.get("remainingBalance") ?? "").trim();
 
   if (!name) {
     return { ok: false, message: "Escribe un nombre para la deuda." };
+  }
+  if (!dueDateRaw) {
+    return { ok: false, message: "Elige la fecha de la próxima cuota." };
+  }
+  const dueDate = normalizeDueDateToYYYYMMDD(dueDateRaw);
+  if (!dueDate) {
+    return { ok: false, message: "La fecha de la cuota no es válida (AAAA-MM-DD)." };
   }
   if (totalStr === "") {
     return { ok: false, message: "Indica el importe total." };
@@ -118,6 +126,7 @@ export function validateDebtFormData(fd) {
   return {
     ok: true,
     name,
+    dueDate,
     totalAmount,
     monthlyPayment,
     remainingBalance,

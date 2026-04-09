@@ -1,5 +1,5 @@
 import { formatMoney } from "../utils/money.js";
-import { parseLocalDate, daysUntil } from "../utils/dates.js";
+import { parseLocalDate, daysUntil, isDueMonthOnOrBeforeCurrent } from "../utils/dates.js";
 
 /**
  * @param {HTMLElement} root
@@ -44,6 +44,10 @@ export function renderExpenseList(root, expenses, filter, handlers) {
         ? `<p class="expense-card__meta">Pagado el ${formatPaidDate(e.paidAt)}</p>`
         : "";
 
+      const canMarkPaid = isDueMonthOnOrBeforeCurrent(e.dueDate);
+      const payBlockedTitle = !canMarkPaid
+        ? "El vencimiento está en un mes futuro; no puedes marcar pagado hasta entonces (o cambia la fecha en Editar)."
+        : "";
       const actions = e.paid
         ? `
         <button type="button" class="btn btn--ghost btn--small" data-action="unpaid" data-id="${e.id}">Marcar pendiente</button>
@@ -51,7 +55,7 @@ export function renderExpenseList(root, expenses, filter, handlers) {
         <button type="button" class="btn btn--ghost btn--small" data-action="delete" data-id="${e.id}" style="color:var(--color-danger);border-color:transparent">Eliminar</button>
       `
         : `
-        <button type="button" class="btn btn--success btn--small" data-action="paid" data-id="${e.id}">Marcar pagado</button>
+        <button type="button" class="btn btn--success btn--small" data-action="paid" data-id="${e.id}" ${canMarkPaid ? "" : "disabled"} title="${escapeAttr(payBlockedTitle)}">Marcar pagado</button>
         <button type="button" class="btn btn--outline btn--small" data-action="edit" data-id="${e.id}">Editar</button>
         <button type="button" class="btn btn--ghost btn--small" data-action="delete" data-id="${e.id}" style="color:var(--color-danger);border-color:transparent">Eliminar</button>
       `;
@@ -76,7 +80,7 @@ export function renderExpenseList(root, expenses, filter, handlers) {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-id");
       const action = btn.getAttribute("data-action");
-      if (!id || !action) return;
+      if (!id || !action || btn.disabled) return;
       if (action === "paid") handlers.onPaid(id);
       if (action === "unpaid") handlers.onUnpaid(id);
       if (action === "edit") handlers.onEdit(id);
@@ -124,4 +128,11 @@ function escapeHtml(s) {
   const div = document.createElement("div");
   div.textContent = s;
   return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 }

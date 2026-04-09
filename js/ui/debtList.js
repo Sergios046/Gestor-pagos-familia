@@ -1,5 +1,6 @@
 import { formatMoney, roundMoney } from "../utils/money.js";
 import { debtProgressPercent, debtAmountPaid } from "../models/debt.js";
+import { parseLocalDate, daysUntil, isDueMonthOnOrBeforeCurrent } from "../utils/dates.js";
 
 /**
  * @param {HTMLElement} root
@@ -7,7 +8,7 @@ import { debtProgressPercent, debtAmountPaid } from "../models/debt.js";
  * @param {object} handlers
  */
 export function renderDebtList(root, debts, handlers) {
-  const sorted = [...debts].sort((a, b) => a.name.localeCompare(b.name, "es-MX"));
+  const sorted = [...debts].sort((a, b) => parseLocalDate(a.dueDate) - parseLocalDate(b.dueDate) || a.name.localeCompare(b.name, "es-MX"));
 
   if (sorted.length === 0) {
     root.innerHTML =
@@ -23,6 +24,11 @@ export function renderDebtList(root, debts, handlers) {
       const remaining = roundMoney(d.remainingBalance);
       const done = remaining <= 0;
       const payLabel = done ? "Liquidada" : `Cuota mensual: ${formatMoney(d.monthlyPayment)}`;
+      const canPay = !done && isDueMonthOnOrBeforeCurrent(d.dueDate);
+      const dueWhen = formatDebtDue(d.dueDate);
+      const payTitle = !canPay && !done
+        ? "La cuota está programada en un mes futuro; vuelve cuando llegue ese mes o edita la fecha."
+        : "";
       const refParts = [];
       if (d.referenceNumber) refParts.push(`Ref. ${escapeHtml(d.referenceNumber)}`);
       if (d.convenio) refParts.push(`Convenio ${escapeHtml(d.convenio)}`);
@@ -37,7 +43,7 @@ export function renderDebtList(root, debts, handlers) {
           <span class="debt-card__remaining">${formatMoney(remaining)}</span>
         </div>
         ${refLine}
-        <p class="debt-card__meta">Total: ${formatMoney(total)} · ${payLabel}</p>
+        <p class="debt-card__meta">Próxima cuota: ${escapeHtml(dueWhen)} · Total: ${formatMoney(total)} · ${payLabel}</p>
         <p class="debt-card__progress-summary">
           Pagado: ${formatMoney(paid)} / ${formatMoney(total)}
           <span class="debt-card__progress-pct">(${pct}%)</span>
@@ -47,7 +53,7 @@ export function renderDebtList(root, debts, handlers) {
           <div class="progress__bar" style="width:${pct}%"></div>
         </div>
         <div class="debt-card__actions">
-          <button type="button" class="btn btn--success btn--small" data-action="pay" data-id="${d.id}" ${done ? "disabled" : ""}>
+          <button type="button" class="btn btn--success btn--small" data-action="pay" data-id="${d.id}" ${done || !canPay ? "disabled" : ""} title="${escapeAttr(payTitle)}">
             Registrar pago
           </button>
           <button type="button" class="btn btn--outline btn--small" data-action="edit" data-id="${d.id}">Editar</button>
@@ -69,8 +75,33 @@ export function renderDebtList(root, debts, handlers) {
   });
 }
 
+function formatDebtDue(iso) {
+  try {
+    const d = daysUntil(iso);
+    const dateStr = parseLocalDate(iso).toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    if (d < 0) return `${dateStr} · retrasada`;
+    if (d === 0) return `${dateStr} · hoy`;
+    if (d === 1) return `${dateStr} · mañana`;
+    return `${dateStr} · en ${d} d.`;
+  } catch {
+    return iso;
+  }
+}
+
 function escapeHtml(s) {
   const div = document.createElement("div");
   div.textContent = s;
   return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 }

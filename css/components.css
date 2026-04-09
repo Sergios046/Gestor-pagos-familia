@@ -444,6 +444,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+.toolbar-search {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.toolbar-search__input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-search__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.toolbar-search__input:focus {
+  outline: 2px solid var(--color-primary-mid);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
 .expenses-toolbar {
   display: flex;
   flex-direction: column;

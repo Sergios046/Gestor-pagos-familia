@@ -1,5 +1,11 @@
 import { normalizeExpenses } from "../models/expense.js";
-import { normalizeDueDateToYYYYMMDD, nowISO, addMonthsPreserveDay, yearMonthLocal } from "../utils/dates.js";
+import {
+  normalizeDueDateToYYYYMMDD,
+  nowISO,
+  addMonthsPreserveDay,
+  yearMonthLocal,
+  isDueMonthOnOrBeforeCurrent,
+} from "../utils/dates.js";
 import { roundMoney } from "../utils/money.js";
 import { toErrorMessage } from "../utils/supabaseErrors.js";
 import { getSupabase } from "./supabaseClient.js";
@@ -171,6 +177,12 @@ export async function markExpensePaid(id) {
   requireRow(row, "Gasto no encontrado");
   const current = normalizeExpenseRow(row);
   if (!current) throw new Error("Gasto no encontrado");
+
+  if (!isDueMonthOnOrBeforeCurrent(current.dueDate)) {
+    throw new Error(
+      "No puedes marcar como pagado: el vencimiento está en un mes futuro. Cuando llegue ese mes podrás registrarlo, o cambia la fecha en Editar."
+    );
+  }
 
   if (current.recurringMonthly) {
     const thisMonth = yearMonthLocal(new Date());

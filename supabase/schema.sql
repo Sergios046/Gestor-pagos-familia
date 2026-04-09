@@ -20,6 +20,7 @@ create table if not exists public.debts (
   total_amount numeric not null,
   monthly_payment numeric not null,
   remaining_balance numeric not null,
+  due_date date not null default (current_date),
   reference_number text,
   convenio text,
   infonavit_credit text,
@@ -35,6 +36,10 @@ alter table public.debts add column if not exists updated_at timestamp with time
 alter table public.debts add column if not exists reference_number text;
 alter table public.debts add column if not exists convenio text;
 alter table public.debts add column if not exists infonavit_credit text;
+alter table public.debts add column if not exists due_date date;
+update public.debts set due_date = coalesce(due_date, current_date);
+alter table public.debts alter column due_date set default (current_date);
+alter table public.debts alter column due_date set not null;
 
 alter table public.expenses add column if not exists user_id uuid references auth.users (id) on delete cascade;
 alter table public.debts add column if not exists user_id uuid references auth.users (id) on delete cascade;
@@ -43,6 +48,7 @@ alter table public.debts alter column user_id set default auth.uid();
 
 create index if not exists expenses_due_date_idx on public.expenses (due_date);
 create index if not exists debts_name_idx on public.debts (name);
+create index if not exists debts_due_date_idx on public.debts (due_date);
 
 alter table public.expenses enable row level security;
 alter table public.debts enable row level security;

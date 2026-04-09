@@ -71,6 +71,19 @@ export function isInCurrentMonth(iso) {
 }
 
 /**
+ * Permite marcar pagado / registrar cuota solo si el mes de vencimiento ya llegó o es el actual
+ * (no meses futuros). Compara YYYY-MM en hora local.
+ * @param {string} dueDateISO 'YYYY-MM-DD'
+ */
+export function isDueMonthOnOrBeforeCurrent(dueDateISO) {
+  const normalized = normalizeDueDateToYYYYMMDD(dueDateISO);
+  if (!normalized) return false;
+  const dueYm = normalized.slice(0, 7);
+  const nowYm = yearMonthLocal(new Date());
+  return dueYm <= nowYm;
+}
+
+/**
  * Days until due (0 = today). Negative = overdue.
  * @param {string} dueDateISO 'YYYY-MM-DD'
  */

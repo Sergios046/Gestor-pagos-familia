@@ -1,5 +1,5 @@
 import { createId } from "../utils/id.js";
-import { nowISO } from "../utils/dates.js";
+import { nowISO, todayISO } from "../utils/dates.js";
 import { roundMoney } from "../utils/money.js";
 
 /**
@@ -12,12 +12,13 @@ import { roundMoney } from "../utils/money.js";
  * @property {string | null} [referenceNumber]
  * @property {string | null} [convenio]
  * @property {string | null} [infonavitCredit]
+ * @property {string} dueDate 'YYYY-MM-DD' próxima cuota
  * @property {string} createdAt
  * @property {string} updatedAt
  */
 
 /**
- * @param {Partial<Debt> & { name: string; totalAmount: number; monthlyPayment: number; remainingBalance?: number }} input
+ * @param {Partial<Debt> & { name: string; totalAmount: number; monthlyPayment: number; remainingBalance?: number; dueDate?: string }} input
  * @returns {Debt}
  */
 export function buildDebt(input) {
@@ -28,12 +29,14 @@ export function buildDebt(input) {
       ? roundMoney(input.remainingBalance)
       : total;
   const remaining = Math.max(0, Math.min(remainingRaw, total));
+  const dueRaw = input.dueDate != null && String(input.dueDate).trim() !== "" ? String(input.dueDate).trim() : todayISO();
   return {
     id: input.id ?? createId(),
     name: String(input.name).trim(),
     totalAmount: total,
     monthlyPayment: Math.max(0, roundMoney(input.monthlyPayment)),
     remainingBalance: remaining,
+    dueDate: dueRaw.slice(0, 10),
     referenceNumber: input.referenceNumber ?? null,
     convenio: input.convenio ?? null,
     infonavitCredit: input.infonavitCredit ?? null,
@@ -79,7 +82,8 @@ export function isDebt(row) {
     typeof row.name === "string" &&
     typeof row.totalAmount === "number" &&
     typeof row.monthlyPayment === "number" &&
-    typeof row.remainingBalance === "number"
+    typeof row.remainingBalance === "number" &&
+    typeof row.dueDate === "string"
   );
 }
 
@@ -98,6 +102,7 @@ export function normalizeDebts(raw) {
       totalAmount: total,
       monthlyPayment: monthly,
       remainingBalance: rem,
+      dueDate: d.dueDate,
       referenceNumber: d.referenceNumber ?? null,
       convenio: d.convenio ?? null,
       infonavitCredit: d.infonavitCredit ?? null,
