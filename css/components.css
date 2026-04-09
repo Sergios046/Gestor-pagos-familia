@@ -678,6 +678,11 @@
   background: var(--color-bg);
 }
 
+/* Sin esto, `display: flex` gana al atributo native `[hidden]` y el login sigue tapando la app. */
+.auth-gate[hidden] {
+  display: none !important;
+}
+
 .auth-gate__panel {
   width: 100%;
   max-width: 22rem;
