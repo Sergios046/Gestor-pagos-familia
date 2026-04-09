@@ -23,6 +23,8 @@ import { formatMoney, roundMoney } from "./utils/money.js";
 import { validateExpenseFormData, validateDebtFormData } from "./utils/validation.js";
 import { toErrorMessage } from "./utils/supabaseErrors.js";
 import { subscribeExpensesAndDebts } from "./services/realtimeSync.js";
+import { getSupabase, resetSupabaseClient } from "./services/supabaseClient.js";
+import { mountAuthGate, signOutAndReload } from "./auth/authGate.js";
 
 /**
  * @typedef {{ expenses: import('./models/expense.js').Expense[]; debts: import('./models/debt.js').Debt[]; filter: 'pending' | 'paid' | 'all'; view: 'dashboard' | 'expenses' | 'debts' }} AppState
@@ -36,6 +38,9 @@ const initialState = {
 };
 
 const store = createStore(/** @type {AppState} */ (initialState));
+
+const authGate = document.getElementById("auth-gate");
+const appShell = document.getElementById("app-shell");
 
 const els = {
   views: {
@@ -53,9 +58,14 @@ const els = {
   debtModal: document.getElementById("debt-modal"),
   debtForm: document.getElementById("debt-form"),
   toast: document.querySelector("[data-toast]"),
+  signOutBtn: document.getElementById("sign-out-btn"),
   openExpenseFormBtns: document.querySelectorAll("[data-action='open-expense-form']"),
   openDebtFormBtns: document.querySelectorAll("[data-action='open-debt-form']"),
 };
+
+function toastMsg(text) {
+  showToast(els.toast, text);
+}
 
 function syncView() {
   const { view } = store.getState();
@@ -405,6 +415,83 @@ function attachRealtimeSync() {
   unsubscribeRealtime = subscribeExpensesAndDebts(() => reloadData());
 }
 
+let appStarted = false;
+/** @type {Promise<void> | null} */
+let ensureAppPromise = null;
+
+async function showAppAndStart() {
+  if (authGate) authGate.hidden = true;
+  if (appShell) appShell.hidden = false;
+  await ensureAppStarted();
+}
+
+async function ensureAppStarted() {
+  if (appStarted) {
+    await reloadData();
+    return;
+  }
+  if (!ensureAppPromise) {
+    ensureAppPromise = (async () => {
+      appStarted = true;
+      registerNav();
+      registerFilters();
+      registerDismissModals();
+      registerForms();
+      els.signOutBtn?.addEventListener("click", () => {
+        void signOutAndReload({ showToast: toastMsg });
+      });
+      attachRealtimeSync();
+      await reloadData();
+      registerServiceWorker();
+      window.addEventListener("beforeunload", () => unsubscribeRealtime());
+    })();
+  }
+  await ensureAppPromise;
+}
+
+async function boot() {
+  const supabase = getSupabase();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  mountAuthGate({
+    onSignedIn: () => {
+      void showAppAndStart();
+    },
+    showToast: toastMsg,
+  });
+
+  if (session) {
+    await showAppAndStart();
+  } else {
+    if (authGate) authGate.hidden = false;
+    if (appShell) appShell.hidden = true;
+  }
+
+  supabase.auth.onAuthStateChange((event, sessionNext) => {
+    if (!sessionNext) {
+      if (appStarted) {
+        resetSupabaseClient();
+        window.location.reload();
+      }
+      return;
+    }
+    if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+      if (authGate) authGate.hidden = true;
+      if (appShell) appShell.hidden = false;
+      if (appStarted) {
+        void reloadData();
+      } else {
+        void ensureAppStarted().catch((err) => {
+          console.error(err);
+          showToast(els.toast, toErrorMessage(err));
+        });
+      }
+    }
+  });
+}
+
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
@@ -414,15 +501,4 @@ function registerServiceWorker() {
   });
 }
 
-async function init() {
-  registerNav();
-  registerFilters();
-  registerDismissModals();
-  registerForms();
-  attachRealtimeSync();
-  await reloadData();
-  registerServiceWorker();
-  window.addEventListener("beforeunload", () => unsubscribeRealtime());
-}
-
-init();
+void boot();

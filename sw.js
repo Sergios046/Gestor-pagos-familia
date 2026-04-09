@@ -1,16 +1,17 @@
 /**
- * Service worker — shell cache. API/Realtime va siempre a red (Supabase).
+ * Service worker — assets cache. HTML/navegación: red primero para no quedarte en una versión vieja (login, etc.).
  */
-const CACHE = "gestor-pagos-v5";
+const CACHE = "gestor-pagos-v7";
+
+/** Sin index.html aquí: la primera carga del documento va a red y luego se guarda en caché. */
 const ASSETS = [
-  "./",
-  "./index.html",
   "./manifest.json",
   "./assets/icon.svg",
   "./css/tokens.css",
   "./css/base.css",
   "./css/components.css",
   "./js/app.js",
+  "./js/auth/authGate.js",
   "./js/config.js",
   "./js/state/store.js",
   "./js/models/expense.js",
@@ -46,10 +47,36 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/** @param {FetchEvent} event */
+function isNavigationRequest(event) {
+  return event.request.mode === "navigate" || event.request.destination === "document";
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (isNavigationRequest(event)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => {
+          const copy = res.clone();
+          if (res.status === 200) {
+            void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return res;
+        })
+        .catch(async () => {
+          const cached =
+            (await caches.match(event.request)) ||
+            (await caches.match("./index.html")) ||
+            (await caches.match(new URL("index.html", self.location).href));
+          return cached || Response.error();
+        })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -58,11 +85,14 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           const copy = res.clone();
           if (res.status === 200) {
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+            void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
           }
           return res;
         })
-        .catch(() => caches.match("./index.html"));
+        .catch(async () => {
+          const c = await caches.match("./index.html");
+          return c || Response.error();
+        });
     })
   );
 });

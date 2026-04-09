@@ -20,12 +20,37 @@
     </script>
   </head>
   <body>
+    <section id="auth-gate" class="auth-gate" aria-labelledby="auth-title">
+      <div class="auth-gate__panel">
+        <h1 id="auth-title" class="auth-gate__title">Gestor de pagos</h1>
+        <p class="auth-gate__lead">Inicia sesión para ver tus gastos y deudas. Los datos solo son accesibles con tu cuenta.</p>
+        <form class="form" id="auth-form" autocomplete="on">
+          <div class="form__field">
+            <label for="auth-email">Correo</label>
+            <input id="auth-email" name="email" type="email" required autocomplete="username" />
+          </div>
+          <div class="form__field">
+            <label for="auth-password">Contraseña</label>
+            <input id="auth-password" name="password" type="password" required minlength="6" autocomplete="current-password" />
+          </div>
+          <footer class="form__actions form__actions--stack">
+            <button type="submit" class="btn btn--primary btn--block" id="auth-submit">Entrar</button>
+            <button type="button" class="btn btn--ghost btn--block" id="auth-toggle-mode">¿No tienes cuenta? Registrarse</button>
+          </footer>
+        </form>
+      </div>
+    </section>
+
+    <div id="app-shell" hidden>
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
 
     <header class="app-header">
-      <div class="app-header__inner">
-        <h1 class="app-title">Gestor de pagos</h1>
-        <p class="app-subtitle">Gastos y recordatorios</p>
+      <div class="app-header__inner app-header__row">
+        <div class="app-header__titles">
+          <h1 class="app-title">Gestor de pagos</h1>
+          <p class="app-subtitle">Gastos y recordatorios</p>
+        </div>
+        <button type="button" class="btn btn--ghost btn--small app-header__signout" id="sign-out-btn">Salir</button>
       </div>
     </header>
 
@@ -144,6 +169,8 @@
           </footer>
         </form>
       </div>
+    </div>
+
     </div>
 
     <div class="toast" data-toast hidden role="status" aria-live="polite"></div>

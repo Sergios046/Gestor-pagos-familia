@@ -16,6 +16,27 @@
   margin: 0 auto;
 }
 
+.app-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.app-header__titles {
+  min-width: 0;
+}
+
+.app-header__signout {
+  flex-shrink: 0;
+  color: #ecfdf5;
+  border-color: rgba(236, 253, 245, 0.45);
+}
+
+.app-header__signout:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .app-title {
   margin: 0;
   font-size: clamp(1.25rem, 4vw, 1.5rem);
@@ -640,6 +661,49 @@
   justify-content: flex-end;
   gap: var(--space-3);
   margin-top: var(--space-2);
+}
+
+.form__actions--stack {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.auth-gate {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-bg);
+}
+
+.auth-gate__panel {
+  width: 100%;
+  max-width: 22rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-gate__panel .form {
+  padding: 0;
+}
+
+.auth-gate__title {
+  margin: 0 0 var(--space-1);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.auth-gate__lead {
+  margin: 0 0 var(--space-4);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .toast {

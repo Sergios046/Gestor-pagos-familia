@@ -16,13 +16,19 @@ export function getSupabase() {
   if (!_client) {
     _client = createClient(url, key, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
       },
     });
   }
   return _client;
+}
+
+/** Call after sign-out so the next login builds a fresh client / listener state. */
+export function resetSupabaseClient() {
+  _client = null;
 }
 
 /**
