@@ -1,7 +1,7 @@
 /**
  * Service worker — assets cache. HTML/navegación: red primero para no quedarte en una versión vieja (login, etc.).
  */
-const CACHE = "gestor-pagos-v8";
+const CACHE = "gestor-pagos-v9";
 
 /** Sin index.html aquí: la primera carga del documento va a red y luego se guarda en caché. */
 const ASSETS = [
@@ -52,6 +52,12 @@ function isNavigationRequest(event) {
   return event.request.mode === "navigate" || event.request.destination === "document";
 }
 
+/** CSS/JS: red primero para no quedar con estilos o lógica viejos (caché-first rompía el login). */
+function useNetworkFirst(url) {
+  const p = url.pathname;
+  return p.includes("/css/") || p.includes("/js/") || /\.(css|js)(\?|$)/i.test(p);
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
@@ -74,6 +80,21 @@ self.addEventListener("fetch", (event) => {
             (await caches.match(new URL("index.html", self.location).href));
           return cached || Response.error();
         })
+    );
+    return;
+  }
+
+  if (useNetworkFirst(url)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => {
+          const copy = res.clone();
+          if (res.status === 200) {
+            void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return res;
+        })
+        .catch(async () => (await caches.match(event.request)) || Response.error())
     );
     return;
   }

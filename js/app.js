@@ -42,6 +42,21 @@ const store = createStore(/** @type {AppState} */ (initialState));
 const authGate = document.getElementById("auth-gate");
 const appShell = document.getElementById("app-shell");
 
+/** Cierra el login aunque el CSS esté cacheado viejo (SW devolvía components.css sin .auth-gate[hidden]). */
+function hideAuthGate() {
+  if (!authGate) return;
+  authGate.hidden = true;
+  authGate.style.setProperty("display", "none", "important");
+  authGate.setAttribute("aria-hidden", "true");
+}
+
+function showAuthGate() {
+  if (!authGate) return;
+  authGate.hidden = false;
+  authGate.style.removeProperty("display");
+  authGate.removeAttribute("aria-hidden");
+}
+
 const els = {
   views: {
     dashboard: document.getElementById("view-dashboard"),
@@ -420,7 +435,7 @@ let appStarted = false;
 let ensureAppPromise = null;
 
 async function showAppAndStart() {
-  if (authGate) authGate.hidden = true;
+  hideAuthGate();
   if (appShell) appShell.hidden = false;
   await ensureAppStarted();
 }
@@ -465,7 +480,7 @@ async function boot() {
   if (session) {
     await showAppAndStart();
   } else {
-    if (authGate) authGate.hidden = false;
+    showAuthGate();
     if (appShell) appShell.hidden = true;
   }
 
@@ -478,7 +493,7 @@ async function boot() {
       return;
     }
     if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-      if (authGate) authGate.hidden = true;
+      hideAuthGate();
       if (appShell) appShell.hidden = false;
       if (appStarted) {
         void reloadData();
