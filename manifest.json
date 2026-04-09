@@ -4,8 +4,8 @@
   "description": "Gestor de gastos y recordatorios de pago",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f0fdfa",
-  "theme_color": "#0f766e",
+  "background_color": "#eef1f7",
+  "theme_color": "#0c1d33",
   "orientation": "portrait-primary",
   "icons": [
     {
